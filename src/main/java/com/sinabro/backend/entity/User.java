@@ -1,13 +1,12 @@
 package com.sinabro.backend.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "User")
@@ -16,6 +15,9 @@ import java.sql.Timestamp;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+
+
+
 public class User {
 
     @Id
@@ -49,4 +51,8 @@ public class User {
     @Column(name = "user_create_date", updatable = false)
     @CreationTimestamp
     private Timestamp userCreateDate;
+
+    //부모-자녀 양방향 연동
+    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL)
+    private List<Child> children = new ArrayList<>();
 }

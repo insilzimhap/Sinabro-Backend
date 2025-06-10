@@ -1,16 +1,13 @@
 package com.sinabro.backend.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.sql.Timestamp;
 
 @Entity
-@Table(name = "Child")
+@Table(name = "child")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -50,6 +47,8 @@ public class Child {
     @CreationTimestamp
     private Timestamp childCreateDate;
 
-    @Column(name = "user_id", length = 255)
-    private String userId; // FK → User.user_id
+    //부모와의 관계 = FK
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id") // FK -> User.user_id
+    private User parent;
 }
