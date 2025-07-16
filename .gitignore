@@ -83,3 +83,10 @@ application-*.yml                    # YAML 형태 설정도 포함
 .gradle/buildOutputCleanup/outputFiles.bin
 .gradle/file-system.probe
 .gradle/vcs-1/gc.properties
+.idea/.name
+.idea/compiler.xml
+.idea/misc.xml
+.idea/modules.xml
+.idea/modules/backend.iml
+.idea/modules/backend_main.iml
+.idea/modules/backend_test.iml
