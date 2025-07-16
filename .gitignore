@@ -1,0 +1,72 @@
+# 디폴트 무시된 파일
+/shelf/
+/.idea/workspace.xml
+# 에디터 기반 HTTP 클라이언트 요청
+/httpRequests/
+# Datasource local storage ignored files
+/dataSources/
+/dataSources.local.xml
+
+# ===================================
+# 💡 Gradle 관련
+# ===================================
+
+.gradle/                             # Gradle 캐시 디렉토리
+**/build/                            # 모든 하위 디렉토리의 build 폴더 무시
+!src/**/build/                       # (선택) 소스 내부의 build는 포함하고 싶다면 예외 설정
+build/                               # 최상위 빌드 결과물 디렉토리
+gradle-app.setting                   # Gradle GUI 설정 파일
+.gradletasknamecache                 # Gradle 작업 캐시 파일
+# Gradle Wrapper 예외 (필요하므로 포함)
+!gradle-wrapper.jar
+!gradle-wrapper.properties
+
+# ===================================
+# 💡 IntelliJ IDEA 관련 설정
+# ===================================
+
+.idea/                               # IntelliJ 프로젝트 설정 폴더 전체
+*.iml                                # IntelliJ 모듈 설정 파일
+.idea_modules/                       # 일부 JetBrains IDE에서 생성
+out/                                 # 컴파일 결과물 위치
+*.iws                                # 오래된 IntelliJ 프로젝트 설정
+.idea/**/workspace.xml               # 사용자 환경 저장
+.idea/**/tasks.xml
+.idea/**/usage.statistics.xml
+.idea/**/dictionaries
+.idea/**/shelf
+.idea/**/aws.xml                     # AWS 관련 설정
+.idea/**/contentModel.xml
+.idea/**/gradle.xml
+.idea/**/libraries
+.idea/**/dataSources/
+.idea/**/sonarlint/
+.idea/**/httpRequests
+
+# ===================================
+# 💡 macOS 시스템 파일
+# ===================================
+
+.DS_Store                            # macOS에서 자동 생성되는 숨김 파일
+
+# ===================================
+# 💡 Java 컴파일 결과
+# ===================================
+
+*.class                              # 자바 컴파일 결과 바이트코드
+
+# ===================================
+# 💡 로그 파일
+# ===================================
+
+*.log                                # 로그 파일
+
+# ===================================
+# 💡 환경변수 파일
+# ===================================
+
+.env                                 # 환경 변수 파일
+.env.*                               # .env.dev, .env.local 등
+application-*.properties             # application-dev.properties 등 민감 설정
+application-*.yml                    # YAML 형태 설정도 포함
+
