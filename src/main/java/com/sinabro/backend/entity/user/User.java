@@ -1,4 +1,4 @@
-package com.sinabro.backend.entity;
+package com.sinabro.backend.entity.user;
 
 import jakarta.persistence.*;
 import lombok.*;

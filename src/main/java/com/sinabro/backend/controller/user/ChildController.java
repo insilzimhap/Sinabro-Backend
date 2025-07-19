@@ -1,6 +1,6 @@
-package com.sinabro.backend.controller;
+package com.sinabro.backend.controller.user;
 
-import com.sinabro.backend.dto.ChildRegisterDto;
+import com.sinabro.backend.dto.user.ChildRegisterDto;
 import com.sinabro.backend.service.ChildService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

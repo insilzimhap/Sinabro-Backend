@@ -1,4 +1,4 @@
-package com.sinabro.backend.dto;
+package com.sinabro.backend.dto.user;
 
 import lombok.Getter;
 import lombok.Setter;

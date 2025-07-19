@@ -1,6 +1,6 @@
-package com.sinabro.backend.controller;
+package com.sinabro.backend.controller.user;
 
-import com.sinabro.backend.dto.UserRegisterDto;
+import com.sinabro.backend.dto.user.UserRegisterDto;
 import com.sinabro.backend.exception.DuplicateUserException;
 import com.sinabro.backend.service.UserService;
 import org.springframework.http.ResponseEntity;

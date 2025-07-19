@@ -1,5 +1,5 @@
-package com.sinabro.backend.repository;
-import com.sinabro.backend.entity.Child;
+package com.sinabro.backend.repository.user;
+import com.sinabro.backend.entity.user.Child;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 

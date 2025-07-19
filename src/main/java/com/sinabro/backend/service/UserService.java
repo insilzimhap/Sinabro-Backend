@@ -1,9 +1,9 @@
 package com.sinabro.backend.service;
 
-import com.sinabro.backend.dto.UserRegisterDto;
-import com.sinabro.backend.entity.User;
+import com.sinabro.backend.dto.user.UserRegisterDto;
+import com.sinabro.backend.entity.user.User;
 import com.sinabro.backend.exception.DuplicateUserException;
-import com.sinabro.backend.repository.UserRepository;
+import com.sinabro.backend.repository.user.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
