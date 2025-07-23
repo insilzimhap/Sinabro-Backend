@@ -90,3 +90,4 @@ application-*.yml                    # YAML 형태 설정도 포함
 .idea/modules/backend.iml
 .idea/modules/backend_main.iml
 .idea/modules/backend_test.iml
+.idea/vcs.xml
