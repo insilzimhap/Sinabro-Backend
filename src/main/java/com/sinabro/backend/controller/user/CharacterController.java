@@ -1,8 +1,8 @@
-package com.sinabro.backend.controller;
+package com.sinabro.backend.controller.user;
 
-import com.sinabro.backend.dto.CharacterDto;
-import com.sinabro.backend.dto.CharacterSelectionDto;
-import com.sinabro.backend.entity.CharacterSelection;
+import com.sinabro.backend.dto.user.CharacterDto;
+import com.sinabro.backend.dto.user.CharacterSelectionDto;
+import com.sinabro.backend.entity.user.CharacterSelection;
 import com.sinabro.backend.service.CharacterService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

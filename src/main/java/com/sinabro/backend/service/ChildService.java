@@ -1,12 +1,12 @@
 package com.sinabro.backend.service;
 
-import com.sinabro.backend.dto.ChildRegisterDto;
-import com.sinabro.backend.entity.Child;
-import com.sinabro.backend.entity.User;
-import com.sinabro.backend.entity.CharacterSelection;
-import com.sinabro.backend.repository.ChildRepository;
-import com.sinabro.backend.repository.UserRepository;
-import com.sinabro.backend.repository.CharacterSelectionRepository;
+import com.sinabro.backend.dto.user.ChildRegisterDto;
+import com.sinabro.backend.entity.user.Child;
+import com.sinabro.backend.entity.user.User;
+import com.sinabro.backend.entity.user.CharacterSelection;
+import com.sinabro.backend.repository.user.ChildRepository;
+import com.sinabro.backend.repository.user.UserRepository;
+import com.sinabro.backend.repository.user.CharacterSelectionRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 

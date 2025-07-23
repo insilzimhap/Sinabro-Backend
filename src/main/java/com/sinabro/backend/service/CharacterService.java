@@ -1,11 +1,10 @@
 package com.sinabro.backend.service;
 
-import com.sinabro.backend.dto.CharacterDto;
-import com.sinabro.backend.dto.CharacterSelectionDto;
-import com.sinabro.backend.entity.Character;
-import com.sinabro.backend.entity.CharacterSelection;
-import com.sinabro.backend.repository.CharacterRepository;
-import com.sinabro.backend.repository.CharacterSelectionRepository;
+import com.sinabro.backend.dto.user.CharacterDto;
+import com.sinabro.backend.dto.user.CharacterSelectionDto;
+import com.sinabro.backend.entity.user.CharacterSelection;
+import com.sinabro.backend.repository.user.CharacterRepository;
+import com.sinabro.backend.repository.user.CharacterSelectionRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

@@ -1,6 +1,6 @@
-package com.sinabro.backend.repository;
+package com.sinabro.backend.repository.user;
 
-import com.sinabro.backend.entity.CharacterSelection;
+import com.sinabro.backend.entity.user.CharacterSelection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
