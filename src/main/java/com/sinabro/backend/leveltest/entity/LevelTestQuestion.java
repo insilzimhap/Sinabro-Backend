@@ -26,6 +26,9 @@ public class LevelTestQuestion {
 
     private String audioUrl; // 음성 파일 경로 (nullable)
 
+    @Column(name = "score")
+    private int score = 1; // 기본 1점, 필요 시 문제마다 설정
+
     @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<LevelTestOption> options = new ArrayList<>();
 
