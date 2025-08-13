@@ -1,1 +1,92 @@
-.idea/workspace.xml
+# 디폴트 무시된 파일
+/shelf/
+/.idea/workspace.xml
+/httpRequests/
+/dataSources/
+/dataSources.local.xml
+
+# ===================================
+# 💡 Gradle 관련
+# ===================================
+
+.gradle/
+**/build/
+!src/**/build/
+build/
+gradle-app.setting
+.gradletasknamecache
+!gradle-wrapper.jar
+!gradle-wrapper.properties
+
+# ===================================
+# 💡 IntelliJ IDEA 관련 설정
+# ===================================
+
+.idea/
+*.iml
+.idea_modules/
+out/
+*.iws
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/usage.statistics.xml
+.idea/**/dictionaries
+.idea/**/shelf
+.idea/**/aws.xml
+.idea/**/contentModel.xml
+.idea/**/gradle.xml
+.idea/**/libraries
+.idea/**/dataSources/
+.idea/**/sonarlint/
+.idea/**/httpRequests
+.idea/.name
+.idea/compiler.xml
+.idea/modules.xml
+.idea/modules/backend.main.iml
+.idea/modules/backend.iml
+.idea/modules/backend.test.iml
+.idea/vcs.xml
+
+# ===================================
+# 💡 macOS 시스템 파일
+.DS_Store
+
+# ===================================
+# 💡 Java 컴파일 결과
+*.class
+
+# ===================================
+# 💡 로그 파일
+*.log
+
+# ===================================
+# 💡 환경변수 파일
+.env
+.env.*
+application-*.properties
+application-*.yml
+
+# ===================================
+# 💡 빌드/임시 결과물
+.gradle/8.13/checksums/checksums.lock
+.gradle/8.13/executionHistory/executionHistory.bin
+.gradle/8.13/executionHistory/executionHistory.lock
+.gradle/8.13/fileChanges/last-build.bin
+.gradle/8.13/fileHashes/fileHashes.bin
+.gradle/8.13/fileHashes/fileHashes.lock
+.gradle/8.13/fileHashes/resourceHashesCache.bin
+.gradle/8.13/gc.properties
+.gradle/buildOutputCleanup/buildOutputCleanup.lock
+.gradle/buildOutputCleanup/cache.properties
+.gradle/buildOutputCleanup/outputFiles.bin
+.gradle/file-system.probe
+.gradle/vcs-1/gc.properties
+
+build/classes/
+build/resources/
+build/reports/
+build/tmp/
+out/production/resources/
+
+src/main/resources/.DS_Store
+src/main/resources/static/.DS_Store
