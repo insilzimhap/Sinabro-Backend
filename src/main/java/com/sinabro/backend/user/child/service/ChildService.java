@@ -8,6 +8,7 @@ import com.sinabro.backend.user.child.repository.ChildRepository;
 import com.sinabro.backend.user.parent.repository.UserRepository;
 import com.sinabro.backend.user.child.repository.CharacterSelectionRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -19,16 +20,19 @@ public class ChildService {
 
     private final ChildRepository childRepository;
     private final UserRepository userRepository;
-    private final CharacterSelectionRepository characterSelectionRepository; // 추가
+    private final CharacterSelectionRepository characterSelectionRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public ChildService(
             ChildRepository childRepository,
             UserRepository userRepository,
-            CharacterSelectionRepository characterSelectionRepository // 추가
+            CharacterSelectionRepository characterSelectionRepository,
+            PasswordEncoder passwordEncoder
     ) {
         this.childRepository = childRepository;
         this.userRepository = userRepository;
-        this.characterSelectionRepository = characterSelectionRepository; // 추가
+        this.characterSelectionRepository = characterSelectionRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional
@@ -36,14 +40,17 @@ public class ChildService {
         User parent = userRepository.findByUserId(dto.getUserId())
                 .orElseThrow(() -> new IllegalArgumentException("부모 계정이 존재하지 않습니다."));
 
+        // ★ 평문 자녀 비밀번호 → 해시
+        String encodedPw = passwordEncoder.encode(dto.getChildPw());
+
         Child child = Child.builder()
                 .childId(dto.getChildId())
                 .childName(dto.getChildName())
-                .childNickName(dto.getChildNickName())
+                .childNickname(dto.getChildNickname())   // DTO 필드 childNickname 사용
                 .childBirth(dto.getChildBirth())
                 .childAge(dto.getChildAge())
-                .childPw(dto.getChildPw())
-                .childLevel(dto.getChildLevel())
+                .childPw(encodedPw)
+                .childLevel(dto.getChildLevel())         // 초기 null 허용
                 .timeLimitMinutes(dto.getTimeLimitMinutes() == null ? 0 : dto.getTimeLimitMinutes())
                 .role("child")
                 .parent(parent)
@@ -54,10 +61,11 @@ public class ChildService {
         ChildRegisterDto result = new ChildRegisterDto();
         result.setChildId(child.getChildId());
         result.setChildName(child.getChildName());
-        result.setChildNickName(child.getChildNickName());
+        result.setChildNickname(child.getChildNickname());
         result.setChildBirth(child.getChildBirth());
         result.setChildAge(child.getChildAge());
-        result.setChildPw(child.getChildPw());
+        // ★ 응답에 비밀번호(해시) 주지 않음
+        result.setChildPw(null);
         result.setChildLevel(child.getChildLevel());
         result.setTimeLimitMinutes(child.getTimeLimitMinutes());
         result.setRole(child.getRole());
@@ -65,20 +73,27 @@ public class ChildService {
         return result;
     }
 
-    // 로그인
     public boolean loginChild(String childId, String childPw) {
         Optional<Child> childOpt = childRepository.findById(childId);
-        return childOpt.isPresent() && childOpt.get().getChildPw().equals(childPw);
+        if (childOpt.isEmpty()) return false;
+        Child child = childOpt.get();
+        // ★ 평문 vs 해시 매칭
+        return passwordEncoder.matches(childPw, child.getChildPw());
     }
 
-    // ✅ childId로 닉네임과 캐릭터ID 내려주는 메서드 추가
+    // childId로 닉네임/캐릭터/레벨 조회
     public Map<String, Object> getChildInfo(String childId) {
         Map<String, Object> result = new HashMap<>();
-        Child child = childRepository.findByChildId(childId).orElse(null);
-        CharacterSelection selection = characterSelectionRepository.findByChildId(childId).orElse(null);
 
-        result.put("nickname", child != null ? child.getChildNickName() : null);
-        result.put("characterId", selection != null ? selection.getCharacterId() : null);
+        Child child = childRepository.findByChildId(childId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 유아를 찾을 수 없습니다."));
+
+        Optional<CharacterSelection> selection = characterSelectionRepository.findByChildId(childId);
+
+        result.put("nickname", child.getChildNickname());
+        result.put("characterId", selection.map(CharacterSelection::getCharacterId).orElse(null));
+        String level = child.getChildLevel() == null ? "-" : child.getChildLevel().toString();
+        result.put("level", level);
         return result;
     }
 }

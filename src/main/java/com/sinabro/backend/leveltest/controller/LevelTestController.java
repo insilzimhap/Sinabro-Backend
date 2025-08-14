@@ -2,6 +2,7 @@ package com.sinabro.backend.leveltest.controller;
 
 import com.sinabro.backend.user.child.entity.Child;
 import com.sinabro.backend.leveltest.dto.*;
+import com.sinabro.backend.leveltest.entity.LevelTestOption;
 import com.sinabro.backend.leveltest.entity.LevelTestQuestion;
 import com.sinabro.backend.leveltest.repository.LevelTestQuestionRepository;
 import com.sinabro.backend.leveltest.repository.ParentQuestionRepository;
@@ -22,7 +23,7 @@ public class LevelTestController {
     private final ChildRepository childRepo;
 
     @GetMapping("/questions")
-    public LevelTestResponseDTO getAllLevelTestData(@RequestParam String childId) {
+    public LevelTestResponseDTO getAllLevelTestData(@RequestParam("childId") String childId) {
 
         // ✅ 1. childId로 유아 정보 불러오기
         Child child = childRepo.findById(childId)
@@ -31,26 +32,33 @@ public class LevelTestController {
         String childName = child.getChildName();  // 또는 childNickName도 가능
 
         // ✅ 2. 부모 체크리스트
-        List<ParentQuestionDTO> parentQuestions = parentRepo.findAll().stream()
+        List<ParentQuestionDTO> parentQuestions = parentRepo.findAllByOrderByQuestionOrder().stream()
                 .map(p -> new ParentQuestionDTO(
                         p.getId(),
                         p.getQuestionText(),
-                        p.getChoices()
-                )).collect(Collectors.toList());
+                        p.getOptions().stream()
+                                .map(o -> new ParentOptionDTO(o.getId(), o.getOptionText()))
+                                .collect(Collectors.toList())
+                ))
+                .collect(Collectors.toList());
 
         // ✅ 3. 레벨 테스트 문제
         List<LevelTestQuestionDTO> levelTestQuestions = new ArrayList<>();
 
         for (LevelTestQuestion q : questionRepo.findAll()) {
-            // 👇 이름 고르기 문항이면, 보기 동적으로 구성
             if ("이름 고르기".equals(q.getType())) {
-                List<LevelTestOptionDTO> options = new ArrayList<>();
-
-                options.add(new LevelTestOptionDTO(null, childName, null, true)); // 정답
-
-                options.add(new LevelTestOptionDTO(null, "김철수", null, false));
-                options.add(new LevelTestOptionDTO(null, "박영희", null, false));
-                options.add(new LevelTestOptionDTO(null, "홍길동", null, false));
+                // 👇 DB의 옵션 id는 그대로 유지하면서, 정답 옵션 텍스트만 childName으로 치환
+                List<LevelTestOptionDTO> options = q.getOptions().stream()
+                        .map(o -> {
+                            String text = o.isCorrect() ? childName : o.getOptionText();
+                            return new LevelTestOptionDTO(
+                                    o.getId(),
+                                    text,
+                                    o.getImageUrl(),
+                                    o.isCorrect()
+                            );
+                        })
+                        .collect(Collectors.toList());
 
                 Collections.shuffle(options);
 
@@ -63,9 +71,8 @@ public class LevelTestController {
                         q.getAudioUrl(),
                         options
                 ));
-
             } else {
-                // 👇 일반 문제는 DB 그대로
+                // 👇 일반 문제는 DB 그대로 (❗️순서 주의: questionImageUrl -> audioUrl)
                 List<LevelTestOptionDTO> options = q.getOptions().stream()
                         .map(o -> new LevelTestOptionDTO(
                                 o.getId(),
@@ -79,8 +86,8 @@ public class LevelTestController {
                         q.getLevel(),
                         q.getType(),
                         q.getPrompt(),
-                        q.getAudioUrl(),
                         q.getQuestionImageUrl(),
+                        q.getAudioUrl(),
                         options
                 ));
             }

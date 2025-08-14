@@ -1,11 +1,14 @@
 package com.sinabro.backend.user.child.controller;
 
 import com.sinabro.backend.user.child.dto.ChildRegisterDto;
+import com.sinabro.backend.user.child.entity.Child;
+import com.sinabro.backend.user.child.repository.ChildRepository;
 import com.sinabro.backend.user.child.service.ChildService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.HashMap;
 
 @CrossOrigin(origins = "*")
 @RestController
@@ -13,9 +16,11 @@ import java.util.Map;
 public class ChildController {
 
     private final ChildService childService;
+    private final ChildRepository childRepository; // ✅ level 추가 위해 주입
 
-    public ChildController(ChildService childService) {
+    public ChildController(ChildService childService, ChildRepository childRepository) {
         this.childService = childService;
+        this.childRepository = childRepository;
     }
 
     @PostMapping("/register")
@@ -37,6 +42,18 @@ public class ChildController {
     // ✅ Service를 통해 childId로 닉네임, 캐릭터ID 조회
     @GetMapping("/info")
     public Map<String, Object> getChildInfo(@RequestParam String childId) {
-        return childService.getChildInfo(childId);
+        // 기존 서비스가 주는 맵 유지
+        Map<String, Object> base = childService.getChildInfo(childId);
+
+        // ✅ 여기서 childLevel만 안전하게 추가
+        Child child = childRepository.findById(childId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 자녀를 찾을 수 없습니다."));
+        Integer level = child.getChildLevel(); // INT, null 허용
+
+        // 새로운 맵으로 합쳐서 반환 (기존 키 보존)
+        Map<String, Object> result = new HashMap<>(base);
+        result.put("level", level == null ? "-" : level); // ← 프론트는 이 키로 읽으면 됨
+
+        return result;
     }
 }

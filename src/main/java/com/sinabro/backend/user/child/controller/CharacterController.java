@@ -28,7 +28,7 @@ public class CharacterController {
 
     // (2) 캐릭터 선택 여부 확인
     @GetMapping("/selection/check")
-    public Map<String, Object> checkSelected(@RequestParam String childId) {
+    public Map<String, Object> checkSelected(@RequestParam("childId") String childId) {
         Optional<CharacterSelection> selection = characterService.getSelectionByChildId(childId);
         Map<String, Object> result = new HashMap<>();
         result.put("selected", selection.isPresent());
