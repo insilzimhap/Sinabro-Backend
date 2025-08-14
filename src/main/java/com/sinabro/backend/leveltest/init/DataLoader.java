@@ -7,12 +7,14 @@ import com.sinabro.backend.leveltest.entity.LevelTestQuestion;
 import com.sinabro.backend.leveltest.repository.LevelTestQuestionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 @Component
 @RequiredArgsConstructor
+@Profile("seed")
 public class DataLoader implements CommandLineRunner {
 
     private final LevelTestQuestionRepository questionRepository;
