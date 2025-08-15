@@ -26,7 +26,7 @@ public class User {
     private String userEmail;
 
     // 소셜 로그인은 비밀번호가 없을 수 있음
-    @Column(name = "user_pw", length = 255)
+    @Column(name = "user_pw", length = 255, nullable =true)
     private String userPw;
 
     @Column(name = "user_name", length = 255, nullable = false)
