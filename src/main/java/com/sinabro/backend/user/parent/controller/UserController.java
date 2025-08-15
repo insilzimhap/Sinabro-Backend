@@ -29,10 +29,10 @@ public class UserController {
         }
     }
 
+    // ⬇️ 소셜은 userPw 안 받아도 됨
     @PostMapping("/social-register")
     public ResponseEntity<UserRegisterDto> socialRegister(@RequestBody UserRegisterDto dto) {
-        UserRegisterDto saved = userService.registerSocialUser(dto);
-        return ResponseEntity.ok(saved);
+        return ResponseEntity.ok(userService.registerSocialUser(dto));
     }
 
 
