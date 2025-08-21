@@ -8,5 +8,4 @@ import lombok.Setter;
 public class CharacterDto {
     private String characterId;
     private String characterName;
-    private String imageUrl;
 }
