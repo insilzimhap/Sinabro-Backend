@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>수정하기 - 시나브로</title>
+  
+  <link rel="stylesheet" href="/web/css/header.css" />
+  <link rel="stylesheet" href="/web/css/users/users_index_update.css" />
+  <!-- 공통 fetch 유틸 -->
+  <script src="/web/js/common.js"></script>
+</head>
+<body>
+  <!-- 공통 헤더 삽입 -->
+  <div id="header-container"></div>
+
+  <div class="edit-container">
+    <h2>회원 정보 수정</h2>
+    <table>
+      <tr>
+        <td>이름</td>
+        <td><input type="text" value="김와와" /></td>
+      </tr>
+      <tr>
+        <td>아이디</td>
+        <td><input type="text" value="mwa2day" /></td>
+      </tr>
+      <tr>
+        <td>이메일</td>
+        <td><input type="email" value="mwa2day@gmail.com" /></td>
+      </tr>
+      <tr>
+        <td>비밀번호</td>
+        <td><input type="text" value="asdf12345!@" /></td>
+      </tr>
+    </table>
+    <div class="button-row">
+      <button onclick="saveChanges()">저장하기</button>
+      <button onclick="location.href='users_index_parent.html'" class="cancel">취소하기</button>
+    </div>
+  </div>
+
+  <script>
+    // 공통 헤더 불러오기
+    fetch("/web/header.html")
+      .then(res => res.text())
+      .then(data => {
+        document.getElementById("header-container").innerHTML = data;
+        checkLogin(); // 헤더 붙인 뒤 호출!
+      });
+
+    // 저장 시 페이지 이동
+    function saveChanges() {
+      alert('변경사항이 저장되었습니다!');
+      location.href = 'users_index_parent.html';
+    }
+  </script>
+</body>
+</html>

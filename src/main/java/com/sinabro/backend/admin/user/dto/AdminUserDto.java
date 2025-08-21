@@ -2,9 +2,9 @@ package com.sinabro.backend.admin.user.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import java.sql.Timestamp;
 
-import java.time.LocalDateTime;
-
+//목록 테이블용(“부모 이름 (아이디) 이메일”)
 @Getter
 @AllArgsConstructor
 public class AdminUserDto {
@@ -13,5 +13,5 @@ public class AdminUserDto {
     private String email; // 사용
     private String phoneNumber;
     private String role;
-    private LocalDateTime createDate;
+    private Timestamp createDate;
 }

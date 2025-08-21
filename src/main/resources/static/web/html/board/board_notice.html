@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>공지사항 관리 - 시나브로</title>
+  <link rel="stylesheet" href="/web/css/header.css" />
+  <link rel="stylesheet" href="/web/css/board/board_notice.css" />
+  <!-- 공통 fetch 유틸 -->
+  <script src="/web/js/common.js"></script>
+</head>
+
+<body>
+  <div id="header-container"></div>
+
+  <main>
+    <div class="sub-nav">
+  <a href="board_notice.html" class="active">공지사항 게시판</a>
+  <a href="board_qna.html">문의사항 게시판</a>
+</div>
+
+    <div class="search-bar">
+      <input type="text" placeholder="검색어를 입력하세요">
+      <button>검색</button>
+    </div>
+
+    <div style="text-align: right; margin-bottom: 10px;">
+      <button onclick="location.href='board_notice_add.html'" class="manage-btn">공지사항 추가</button>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>No</th>
+          <th>제목</th>
+          <th>작성일</th>
+          <th>유형</th>
+          <th>액션</th>
+        </tr>
+      </thead>
+      <tbody id="noticeTableBody">
+        <!-- JS에서 불러온 데이터가 여기에 들어감 -->
+      </tbody>
+    </table>
+  </main>
+
+  <script>
+    // 공통 헤더 삽입
+    fetch("/web/header.html")
+            .then(res => res.text())
+            .then(html => {
+              document.getElementById("header-container").innerHTML = html;
+              checkLogin(); // 헤더 붙인 뒤 호출!
+            });
+
+    // 공지사항 목록 불러오기
+    async function loadNotices() {
+      try {
+        // ✅ 공통 apiFetch 사용 (401/403 시 자동으로 로그인 페이지로 이동)
+        const res = await apiFetch("/api/admin/notices");
+        if (!res) return; // ⬅️ 로그인으로 이동 중이면 더 하지 않음
+
+        const notices = await res.json();
+
+        const tbody = document.getElementById("noticeTableBody");
+        tbody.innerHTML = "";
+
+        // 최신순 정렬 (id 기준)
+        notices.sort((a, b) => b.id - a.id);
+
+        notices.forEach((notice, index) => {
+          const row = `
+            <tr>
+              <td>${index + 1}</td>
+              <td>${notice.title}</td>
+              <td>${notice.createdDate ? notice.createdDate.split("T")[0] : ""}</td>
+              <td>${notice.noticeType || ""}</td>
+              <td>
+                <button onclick="location.href='board_index_no_update.html?id=${notice.id}'" class="manage-btn">관리</button>
+              </td>
+            </tr>
+          `;
+          tbody.insertAdjacentHTML("beforeend", row);
+        });
+      } catch (err) {
+        // apiFetch가 401/403이면 이미 리다이렉트 하므로 여기까지 안 옴.
+        console.error(err);
+        alert("공지사항 목록을 불러오는 중 오류가 발생했습니다."); // 네트워크 등 다른 오류만 알림
+      }
+    }
+
+    // 페이지 로드 시 실행
+    window.addEventListener("DOMContentLoaded", loadNotices);
+  </script>
+</body>
+</html>

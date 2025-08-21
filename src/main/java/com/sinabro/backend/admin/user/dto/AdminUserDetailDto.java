@@ -1,9 +1,13 @@
 package com.sinabro.backend.admin.user.dto;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
+
+//부모 카드 + 자녀 테이블 → 상세 화면용
 @Getter
 @AllArgsConstructor
 public class AdminUserDetailDto {
@@ -17,7 +21,9 @@ public class AdminUserDetailDto {
         private String id;        // user_id
         private String email;     // user_email
         private String name;      // user_name
-        private String password;  // user_pw  (표시는 지양, 재설정 권장)
+        private String phoneNumber;  // ✅ 추가
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm", timezone="Asia/Seoul")  // 응답 포맷
+        private LocalDateTime createDate;
     }
 
     @Getter

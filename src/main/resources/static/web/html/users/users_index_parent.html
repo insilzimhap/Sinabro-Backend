@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>회원 상세 정보 - 시나브로</title>
+ 
+  <link rel="stylesheet" href="/web/css/header.css" />
+  <link rel="stylesheet" href="/web/css/users/users_index_parent.css" />
+  <!-- 공통 fetch 유틸 -->
+  <script src="/web/js/common.js"></script>
+</head>
+<body>
+  <div id="header-container"></div>
+
+  <div class="container">
+    <h2 id="parent-name">부모 이름</h2>
+
+    <div class="info-group">
+      <strong>아이디</strong> <span id="parent-id"></span><br>
+      <strong>이메일</strong> <span id="parent-email"></span><br>
+      <strong>전화번호</strong> <span id="parent-phone"></span><br>
+      <strong>계정 생성 날짜</strong> <span id="parent-created"></span><br>
+    </div>
+
+    <h3 id="children-title"></h3>
+    <table id="children-table">
+      <thead>
+        <tr>
+          <th>이름</th>
+          <th>아이디</th>
+          <th>나이</th>
+          <th>액션</th>
+        </tr>
+      </thead>
+      <tbody>
+      <!-- 자녀 목록 행이 JS로 들어감 -->
+      </tbody>
+    </table>
+
+    <div class="actions">
+      <button class="edit" id="edit-btn">수정하기</button>
+      <button onclick="confirmDelete()">삭제하기</button>
+    </div>
+  </div>
+
+  <script>
+    // 공통 헤더
+    fetch("/web/header.html")
+            .then(r => r.text())
+            .then(html => {
+              document.getElementById("header-container").innerHTML = html;
+              if (typeof checkLogin === "function") checkLogin();
+            });
+
+    // 간단 XSS 방지
+    const escapeHtml = s =>
+            String(s ?? "")
+                    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+                    .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+
+    async function loadParentDetail() {
+      try {
+        const params = new URLSearchParams(location.search);
+        const userId = params.get("userId");
+        if (!userId) {
+          alert("잘못된 접근입니다.");
+          location.replace("/web/html/users/users_index.html");
+          return;
+        }
+
+        const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}`);
+        if (!res || !res.ok) return; // apiFetch가 로그인 리다이렉트 처리
+        const data = await res.json();
+
+        // 부모 정보
+        document.getElementById("parent-name").innerText = `${data.parent.name} 님`;
+        document.getElementById("parent-id").innerText = escapeHtml(data.parent.id);
+        document.getElementById("parent-email").innerText = escapeHtml(data.parent.email);
+        document.getElementById("parent-phone").innerText = escapeHtml(data.parent.phoneNumber ?? "-");
+        // 서버가 "yyyy-MM-dd HH:mm" 문자열로 내려줘서 그대로 표시하면 됨
+        document.getElementById("parent-created").innerText = data.parent.createDate ?? "-";
+
+        // 자녀 목록
+        document.getElementById("children-title").innerText = `${data.parent.name} 님의 자식`;
+        const tbody = document.querySelector("#children-table tbody");
+        tbody.innerHTML = "";
+
+        if (!data.children || data.children.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#777;">자녀가 없습니다</td></tr>`;
+        } else {
+          data.children.forEach(child => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td>${escapeHtml(child.name)}</td>
+              <td>${escapeHtml(child.childId)}</td>
+              <td>${child.age ?? "-"}세</td>
+              <td><button class="child-button"
+                    onclick="location.href='users_index_child.html?childId=${encodeURIComponent(child.childId)}'">상세</button></td>
+            `;
+            tbody.appendChild(tr);
+          });
+        }
+
+        // 수정 버튼
+        document.getElementById("edit-btn").onclick = () => {
+          location.href = `users_index_update.html?userId=${encodeURIComponent(userId)}`;
+        };
+      } catch (e) {
+        console.error(e);
+        alert("상세 정보를 불러오는 중 오류가 발생했습니다.");
+      }
+    }
+
+    function confirmDelete() {
+      const confirmed = confirm("정말 삭제하시겠습니까?");
+      if (confirmed) {
+        // TODO: 실제 삭제 API 연결
+        alert("삭제되었습니다 (임시 처리)");
+        location.href = "users_index.html";
+      }
+    }
+
+    loadParentDetail();
+  </script>
+
+</body>
+</html>

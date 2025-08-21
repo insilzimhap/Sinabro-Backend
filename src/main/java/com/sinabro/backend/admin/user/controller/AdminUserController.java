@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 
-@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
@@ -27,7 +26,7 @@ public class AdminUserController {
 
 
     // ✅ 특정 부모의 자녀 리스트 조회
-    @GetMapping("/{parentUserId}/children")
+    @GetMapping("/users/{parentUserId}/children")
     public ResponseEntity<List<AdminChildDto>> getChildrenByParent(
             @PathVariable String parentUserId
     ) {

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title> 시나브로 </title>
+  
+  <link rel="stylesheet" href="/web/css/header.css" />
+  <link rel="stylesheet" href="/web/css/users/users_index.css" />
+  <!-- 인증 가드 공용 fetch -->
+  <script src="/web/js/common.js"></script>
+</head>
+<body>
+    <div id="header-container"></div>
+
+  <main>
+    <!-- 🔎 검색 UI (백엔드 연동은 추후) -->
+    <div class="member-search-container">
+      <h3>회원 검색</h3>
+      <div class="search-bar">
+        <select id="searchField">
+          <option value="parentName">부모 이름</option>
+          <option value="childName" disabled>자식 이름</option>
+          <option value="email" disabled>이메일</option>
+        </select>
+        <input id="searchInput" type="text" placeholder="검색어를 입력하세요">
+        <button id="searchBtn" onclick="searchMembers()">검색</button>
+      </div>
+
+      <!-- 목록 영역 -->
+      <div id="memberList" class="member-list">
+<!--        <div class="member-item">-->
+<!--          <div class="member-info">-->
+<!--            <strong>김와와</strong> (mwa2day) mwa2day@gmail.com-->
+<!--          </div>-->
+<!--          <button onclick="location.href='users_index_parent.html'">상세</button>-->
+<!--        </div>-->
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    // 공통 헤더 로드 + 로그인 상태 표시
+    fetch("/web/header.html")
+            .then(res => res.text())
+            .then(html => {
+              document.getElementById("header-container").innerHTML = html;
+              // header.html 안에서 checkLogin() 정의되어 있음
+              if (typeof checkLogin === "function") checkLogin();
+            });
+
+    // ✅ 회원 목록 로드
+    async function loadUsers() {
+      try {
+        const res = await apiFetch("/api/admin/users"); // 세션 없으면 apiFetch가 로그인으로 보냄
+        if (!res) return; // apiFetch가 이미 처리(리다이렉트)했음
+        if (!res.ok) throw new Error("목록 호출 실패");
+
+        const data = await res.json();
+        renderUsers(data);
+      } catch (e) {
+        console.error(e);
+        alert("회원 목록을 불러오는 중 오류가 발생했습니다.");
+      }
+    }
+
+    // ✅ 목록 렌더링: "이름 (아이디) 이메일"
+    function renderUsers(users) {
+      const listEl = document.getElementById("memberList");
+      listEl.innerHTML = "";
+
+      if (!users || users.length === 0) {
+        listEl.innerHTML = `<div class="member-empty">표시할 회원이 없습니다.</div>`;
+        return;
+      }
+
+      users.forEach(u => {
+        const item = document.createElement("div");
+        item.className = "member-item";
+
+        item.innerHTML = `
+          <div class="member-info">
+            <strong>${escapeHtml(u.name ?? "")}</strong>
+            (${escapeHtml(u.id ?? "")})
+            ${escapeHtml(u.email ?? "")}
+          </div>
+          <button type="button" class="detail-btn">상세</button>
+        `;
+
+        item.querySelector(".detail-btn").addEventListener("click", () => {
+          // 상세 페이지로 userId 전달
+          window.location.href = "/web/html/users/users_index_parent.html?userId=" + encodeURIComponent(u.id);
+        });
+
+        listEl.appendChild(item);
+      });
+    }
+
+    // 🔐 간단한 XSS 방지용 이스케이프
+    function escapeHtml(str) {
+      return String(str)
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;")
+              .replace(/"/g, "&quot;")
+              .replace(/'/g, "&#039;");
+    }
+
+    // 🔎 검색(1차: 프론트 필터) — 백엔드 연동 전 임시
+    document.getElementById("searchBtn").addEventListener("click", async () => {
+      const q = document.getElementById("searchInput").value.trim().toLowerCase();
+      const field = document.getElementById("searchField").value;
+
+      // 전체 목록 불러와서 프론트에서 필터
+      const res = await apiFetch("/api/admin/users");
+      if (!res) return;
+      const all = await res.json();
+
+      let filtered = all;
+      if (q) {
+        if (field === "parentName") {
+          filtered = all.filter(u => (u.name || "").toLowerCase().includes(q));
+        }
+        // childName, email은 추후 백엔드 검색 API 붙이면서 활성화
+      }
+
+      renderUsers(filtered);
+    });
+
+    // 페이지 첫 로드 시 목록 가져오기
+    window.addEventListener("DOMContentLoaded", loadUsers);
+  </script>
+</body>
+</html>

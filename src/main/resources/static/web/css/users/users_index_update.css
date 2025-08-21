@@ -1,0 +1,54 @@
+body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f0f4f8;
+      margin: 0;
+      padding: 0;
+    }
+
+    .edit-container {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+      width: 400px;
+      margin: 40px auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    table td {
+      padding: 10px 0;
+    }
+
+    table input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    .button-row {
+      text-align: center;
+      padding-top: 20px;
+    }
+
+    .button-row button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      background-color: #4caf50;
+      color: white;
+      cursor: pointer;
+      margin: 0 5px;
+    }
+
+    .button-row button.cancel {
+      background-color: #f44336;
+    }
+
+    .button-row button:hover {
+      opacity: 0.9;
+    }

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title> 자녀 상세 페이지</title>
+  <link rel="stylesheet" href="/web/css/header.css" />
+  <link rel="stylesheet" href="/web/css/users/users_index_child.css" />
+  <!-- 공통 fetch 유틸 -->
+  <script src="/web/js/common.js"></script>
+</head>
+
+<body>
+  <!-- 공통 헤더 -->
+  <div id="header-container"></div>
+
+  <!-- Main content -->
+  <div class="container">
+    <h2 id="child-name">
+      <span id="child-title">자녀 이름</span>
+      <span id="child-age" class="age"></span>
+    </h2>
+
+    <div class="info-row">
+      <div>
+        <div class="label">아이디</div>
+        <div id="child-id"></div>
+      </div>
+      <div>
+        <div class="label">닉네임</div>
+        <div id="child-nickname"></div>
+      </div>
+      <div>
+        <div class="label">현재 레벨</div>
+        <div id="child-level"></div>
+      </div>
+      <div>
+        <div class="label">캐릭터</div>
+        <div id="child-character">아직 sql 테이블이 없어서 추후 추가</div>
+      </div>
+    </div>
+
+    <div class="button-container">
+      <button class="delete-btn" onclick="deleteChild()">자녀 삭제하기</button>
+    </div>
+  </div>
+
+  <script>
+    // ✅ 공통 헤더 로드
+    fetch("/web/header.html")
+            .then(res => res.text())
+            .then(data => {
+              document.getElementById("header-container").innerHTML = data;
+              checkLogin();
+            });
+
+    // ✅ URL 파라미터에서 childId 추출
+    const params = new URLSearchParams(location.search);
+    const childId = params.get("childId");
+
+    if (!childId) {
+      alert("잘못된 접근입니다.");
+      window.location.href = "users_index.html";
+    }
+
+    // ✅ 자녀 상세 API 호출
+    async function loadChildDetail() {
+      const res = await apiFetch(`/api/admin/children/${childId}`);
+      if (!res.ok) {
+        alert("자녀 정보를 불러오지 못했습니다.");
+        return;
+      }
+      const data = await res.json();
+
+      // 화면 채우기
+      document.getElementById("child-title").innerText = (data.name || "") + " 님";
+      document.getElementById("child-age").innerText   = "나이: 만 " + (data.age ?? "-") + "세";
+      document.getElementById("child-id").innerText       = data.childId ?? "";
+      document.getElementById("child-nickname").innerText = data.nickname ?? "-";
+      document.getElementById("child-level").innerText    = data.level ?? "-";
+    }
+
+    // ✅ 자녀 삭제
+    async function deleteChild() {
+      if (confirm("자녀 계정을 삭제하시겠습니까?")) {
+        // TODO: 실제 삭제 API 호출 필요
+        // await apiFetch(`/api/admin/children/${childId}`, { method: "DELETE" });
+        alert("삭제되었습니다 (임시 처리)");
+        window.location.href = "users_index_parent.html?userId=부모ID";
+      }
+    }
+
+    // 첫 로딩 시 실행
+    loadChildDetail();
+  </script>
+</body>
+</html>

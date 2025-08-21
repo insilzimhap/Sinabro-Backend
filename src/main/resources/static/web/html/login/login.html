@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>로그인</title>
+  <link rel="stylesheet" href="/web/css/header.css" />
+  <link rel="stylesheet" href="/web/css/login/login.css" />
+</head>
+<body>
+  <!-- 공통 헤더 -->
+  <div id="header-container"></div>
+
+  <div class="login-container">
+    <h2>로그인</h2>
+    <form id="loginForm" method="post">
+      <div class="form-group">
+        <label for="username">아이디</label>
+        <input type="text" id="username" name="username" placeholder="아이디를 입력하세요" required>
+      </div>
+      <div class="form-group">
+        <label for="password">비밀번호</label>
+        <input type="password" id="password" name="password" placeholder="비밀번호를 입력하세요" required>
+      </div>
+      <button type="submit">로그인</button>
+    </form>
+  </div>
+
+  <script>
+    // 공통 헤더 삽입
+    fetch("/web/header.html")
+      .then(res => res.text())
+      .then(data => {
+        document.getElementById("header-container").innerHTML = data;
+      });
+
+
+    // 로그인 처리 로직
+    document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("loginForm");
+
+    form.addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      const userId = form.username.value.trim();
+      const password = form.password.value.trim();
+
+      if (!userId || !password) {
+        alert("아이디와 비밀번호를 모두 입력해주세요.");
+        return;
+      }
+
+      try {
+        const res = await fetch("http://localhost:8090/api/admin/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, password }),
+          credentials: "include" // ✅ 세션 쿠키 저장
+        });
+
+        if (res.status === 204) {
+          // 로그인 성공 → 메인 페이지로 이동
+          window.location.href = "/web/html/board/board_notice.html";
+        } else if (res.status === 401) {
+          alert("아이디 또는 비밀번호가 잘못되었습니다.");
+        } else if (res.status === 403) {
+          alert("관리자 계정만 로그인할 수 있습니다.");
+        } else {
+          alert("로그인 중 오류가 발생했습니다.");
+        }
+      } catch (err) {
+        console.error("로그인 오류:", err);
+        alert("서버와 통신할 수 없습니다.");
+      }
+    });
+  });
+  </script>
+</body>
+</html>

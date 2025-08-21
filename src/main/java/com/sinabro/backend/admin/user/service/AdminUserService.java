@@ -9,10 +9,11 @@ import com.sinabro.backend.admin.user.repository.AdminUserRepository;
 import com.sinabro.backend.admin.user.dto.AdminChildDto;
 import com.sinabro.backend.admin.user.entity.AdminChild;
 import com.sinabro.backend.admin.user.repository.AdminChildRepository;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -35,14 +36,14 @@ public class AdminUserService {
      * - 정렬이 필요하면 Repository 쿼리 메서드에서 order by 추가를 권장
      */
     public List<AdminUserDto> getAllUsers() {
-        return adminUserRepository.findAll().stream()
+        return adminUserRepository.findAllByOrderByCreateDateDesc().stream()
                 .map(user -> new AdminUserDto(
                         user.getId(),          // user_id
                         user.getName(),        // user_name
                         user.getEmail(),       // user_email
                         user.getPhoneNumber(), // user_phone_num (NULL 가능)
                         user.getRole(),        // role
-                        user.getCreateDate()   // user_create_date (Timestamp)
+                        user.getCreateDate()  //user_create_date
                 ))
                 .collect(Collectors.toList());
     }
@@ -52,7 +53,7 @@ public class AdminUserService {
      * - /api/admin/users/{parentUserId}/children 에서 사용
      */
     public List<AdminChildDto> getChildrenByParent(String parentUserId) {
-        return adminChildRepository.findByParent_Id(parentUserId)
+        return adminChildRepository.findByParent_IdOrderByCreateDateDesc(parentUserId)
                 .stream()
                 .map(this::toChildDto)
                 .collect(Collectors.toList());
@@ -88,11 +89,15 @@ public class AdminUserService {
                 ))
                 .collect(Collectors.toList());
 
+        LocalDateTime createDate =
+                parent.getCreateDate() != null ? parent.getCreateDate().toLocalDateTime() : null;
+
         var parentDto = new AdminUserDetailDto.ParentDto(
                 parent.getId(),
                 parent.getEmail(),
                 parent.getName(),
-                parent.getPassword() // ⚠️ 비밀번호는 화면 정책에 따라 제거/마스킹 고려
+                parent.getPhoneNumber(), // ✅ 추가
+                createDate                  // ✅ 추가
         );
 
         return new AdminUserDetailDto(parentDto, children);
@@ -106,13 +111,14 @@ public class AdminUserService {
         var c = adminChildRepository.findById(childId)
                 .orElseThrow(() -> new IllegalArgumentException("child not found: " + childId));
 
-        return new AdminChildDetailDto(
-                c.getId(),
-                c.getName(),
-                c.getAge(),
-                c.getLevel(),
-                c.getPassword() // ⚠️ 마찬가지로 노출 정책 검토 필요
-        );
+        return AdminChildDetailDto.builder()
+                .childId(c.getId())
+                .name(c.getName())
+                .nickname(c.getNickname())
+                .age(c.getAge())          // ✅ 나이 포함
+                .level(c.getLevel())
+                // .characterName(null)   // 캐릭터 붙이면 여기 채우기
+                .build();
     }
 
     // ===========================

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>공지사항 관리 - 시나브로</title>
+  <link rel="stylesheet" href="/web/css/header.css" />
+  <link rel="stylesheet" href="/web/css/board/board_index_no_update.css" />
+  <!-- 공통 fetch 유틸 -->
+  <script src="/web/js/common.js"></script>
+</head>
+<body>
+  <div id="header-container"></div>
+  <main>
+    <div class="container">
+      <h2>공지사항</h2>
+
+      <div class="form-group">
+        <label>제목</label>
+        <div class="value" id="noticeTitle"></div>
+      </div>
+
+      <div class="form-group">
+        <label>내용</label>
+        <div class="value" id="noticeContent"></div>
+      </div>
+
+      <div class="form-group">
+        <label>작성일</label>
+        <div class="value" id="noticeCreatedDate"></div>
+      </div>
+
+      <div class="form-group">
+        <label>유형</label>
+        <div class="value" id="noticeType"></div>
+      </div>
+
+      <div class="button-row">
+        <button class="update-btn" id="updateBtn">수정하기</button>
+        <button class="delete-btn" onclick="deleteNotice()">삭제하기</button>
+        <button class="cancel-btn" onclick="location.href='board_notice.html'">취소하기</button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    fetch("/web/header.html")
+      .then(res => res.text())
+      .then(data => {
+        document.getElementById("header-container").innerHTML = data;
+        checkLogin(); // 헤더 붙인 뒤 호출!
+      });
+
+      // URL 파라미터에서 id 추출
+    const urlParams = new URLSearchParams(window.location.search);
+    const noticeId = urlParams.get("id");
+
+    // 공지사항 상세 불러오기
+    async function loadNoticeDetail() {
+      try {
+        const res = await fetch(`http://localhost:8090/api/admin/notices/${noticeId}`);
+        if (!res.ok) throw new Error("공지사항 불러오기 실패");
+
+        const notice = await res.json();
+
+        document.getElementById("noticeTitle").textContent = notice.title;
+        document.getElementById("noticeContent").textContent = notice.content;
+        document.getElementById("noticeCreatedDate").textContent = notice.createdDate?.split("T")[0] || "";
+        document.getElementById("noticeType").textContent = notice.noticeType || "";
+
+        // 수정 버튼 클릭 시 해당 ID 전달
+        document.getElementById("updateBtn").onclick = () => {
+          location.href = `board_edit.html?id=${noticeId}`;
+        };
+
+      } catch (err) {
+        console.error(err);
+        alert("공지사항을 불러오는 중 오류가 발생했습니다.");
+      }
+    }
+
+    // 공지사항 삭제
+    async function deleteNotice() {
+      if (!confirm("공지사항을 삭제하시겠습니까?")) return;
+
+      try {
+        const res = await fetch(`http://localhost:8090/api/admin/notices/${noticeId}`, {
+          method: "DELETE"
+        });
+        if (!res.ok) throw new Error("삭제 실패");
+
+        alert("삭제되었습니다.");
+        window.location.href = 'board_notice.html';
+      } catch (err) {
+        console.error(err);
+        alert("삭제 중 오류가 발생했습니다.");
+      }
+    }
+
+    // 페이지 로드 시 실행
+    window.onload = loadNoticeDetail;
+
+  </script>
+</body>
+</html>

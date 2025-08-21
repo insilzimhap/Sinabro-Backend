@@ -16,9 +16,11 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Optional;
 
+@Slf4j
 @CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/admin/auth")
@@ -39,9 +41,13 @@ public class AdminAuthController {
      */
     @PostMapping("/login")
     public ResponseEntity<Void> login(@RequestBody AdminLoginRequestDto req, HttpServletRequest request) {
+        //로그
+        log.info("✅ Admin login attempt: userId={}", req.getUserId());
+
         // (A) 먼저 DB에서 사용자 존재/권한 선검사
         var userOpt = userRepository.findByUserId(req.getUserId());
         if (userOpt.isEmpty()) {
+            log.warn("❌ Login failed - no such user: {}", req.getUserId());
             return ResponseEntity.status(401).build(); // 아이디 없음
         }
 
@@ -75,6 +81,7 @@ public class AdminAuthController {
         HttpSession session = request.getSession(true);
         session.setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
 
+        log.info("✅ Admin login success: {}", req.getUserId());
         return ResponseEntity.noContent().build(); // 204
     }
 
@@ -85,6 +92,8 @@ public class AdminAuthController {
      */
     @GetMapping("/me")
     public ResponseEntity<?> me() {
+        log.info("📌 [ME] 요청 들어옴");
+
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
             return ResponseEntity.status(401).build();
@@ -100,6 +109,8 @@ public class AdminAuthController {
                 .name(u.getUserName())   // 화면에는 그냥 “관리자”라고 써도 무방
                 .role(u.getRole())       // “admin” 기대
                 .build();
+
+        log.info("✅ [ME] 성공 - userId={}, role={}", u.getUserId(), u.getRole());
         return ResponseEntity.ok(body);
     }
 
@@ -109,9 +120,13 @@ public class AdminAuthController {
      */
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletRequest request) {
+        log.info("📌 [LOGOUT] 요청 들어옴");
+
         HttpSession session = request.getSession(false);
         if (session != null) session.invalidate();
         SecurityContextHolder.clearContext();
+
+        log.info("✅ [LOGOUT] 성공 - 세션 무효화 완료");
         return ResponseEntity.noContent().build();
     }
 }
