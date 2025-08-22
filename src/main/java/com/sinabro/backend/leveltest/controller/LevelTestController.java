@@ -2,7 +2,6 @@ package com.sinabro.backend.leveltest.controller;
 
 import com.sinabro.backend.user.child.entity.Child;
 import com.sinabro.backend.leveltest.dto.*;
-import com.sinabro.backend.leveltest.entity.LevelTestOption;
 import com.sinabro.backend.leveltest.entity.LevelTestQuestion;
 import com.sinabro.backend.leveltest.repository.LevelTestQuestionRepository;
 import com.sinabro.backend.leveltest.repository.ParentQuestionRepository;
@@ -13,9 +12,23 @@ import org.springframework.web.bind.annotation.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
+// ── Swagger OpenAPI ────────────────────────────────────────────────────────────
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+// ──────────────────────────────────────────────────────────────────────────────
+
 @RestController
 @RequestMapping("/api/level-test")
 @RequiredArgsConstructor
+@Tag(
+        name = "Level Test",
+        description = "레벨 테스트(부모 체크리스트 + 유아 문항) 조회 API"
+)
 public class LevelTestController {
 
     private final ParentQuestionRepository parentRepo;
@@ -23,7 +36,33 @@ public class LevelTestController {
     private final ChildRepository childRepo;
 
     @GetMapping("/questions")
-    public LevelTestResponseDTO getAllLevelTestData(@RequestParam("childId") String childId) {
+    @Operation(
+            summary = "레벨 테스트 데이터 조회",
+            description = """
+                    부모 체크리스트 문항들과 유아 레벨 테스트 문항을 함께 반환
+                    * 이름 고르기(type=\"이름 고르기\") 문제는 서버가 해당 **자녀 이름**을 정답 텍스트로 동적 치환.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "성공",
+                    content = @Content(schema = @Schema(implementation = LevelTestResponseDTO.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "잘못된 요청(존재하지 않는 childId 등)",
+                    content = @Content(schema = @Schema(implementation = String.class))
+            )
+    })
+    public LevelTestResponseDTO getAllLevelTestData(
+            @Parameter(
+                    description = "레벨 테스트를 진행할 **자녀 ID**(PK).\n예) `rami`",
+                    required = true,
+                    example = "rami"
+            )
+            @RequestParam("childId") String childId
+    ) {
 
         // ✅ 1. childId로 유아 정보 불러오기
         Child child = childRepo.findById(childId)

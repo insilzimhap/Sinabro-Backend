@@ -90,5 +90,5 @@ out/production/resources/
 
 src/main/resources/.DS_Store
 src/main/resources/static/.DS_Store
-src/.DS_Store
-src/main/.DS_Store
+
+build.gradle
