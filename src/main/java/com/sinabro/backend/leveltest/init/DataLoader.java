@@ -94,17 +94,17 @@ public class DataLoader implements CommandLineRunner {
         l1q2.setAudioUrl("/audio/bird_story.mp3");
         l1q2.addOption(new LevelTestOption("나비", "/img/butterfly.png", false));
         l1q2.addOption(new LevelTestOption("새", "/img/bird.png", true));
-        l1q2.addOption(new LevelTestOption("구름", "/img/cloud.png", false));
-        l1q2.addOption(new LevelTestOption("개", "/img/dog.png", false));
+        l1q2.addOption(new LevelTestOption("구름", "/img/flower.png", false));
+        l1q2.addOption(new LevelTestOption("개", "/img/flower.png", false));
 
         LevelTestQuestion l1q3 = new LevelTestQuestion();
         l1q3.setLevel(1);
         l1q3.setType("호칭 고르기");
         l1q3.setPrompt("음성을 듣고 알맞은 그림을 골라보세요.");
         l1q3.setAudioUrl("/audio/mother.mp3");
-        l1q3.addOption(new LevelTestOption("엄마", "/img/mother.png", true));
-        l1q3.addOption(new LevelTestOption("아빠", "/img/father.png", false));
-        l1q3.addOption(new LevelTestOption("아기", "/img/baby.png", false));
+        l1q3.addOption(new LevelTestOption("엄마", "/img/mom.png", true));
+        l1q3.addOption(new LevelTestOption("아빠", "/img/dad.png", false));
+        l1q3.addOption(new LevelTestOption("할머니", "/img/grandmom.png", false));
 
         questionRepository.saveAll(List.of(l1q1, l1q2, l1q3));
 
@@ -113,10 +113,10 @@ public class DataLoader implements CommandLineRunner {
         l2q1.setLevel(2);
         l2q1.setType("글자 고르기");
         l2q1.setPrompt("아래 보기 중 같은 글자를 골라보세요.");
-        l2q1.setQuestionImageUrl("/img/question_ga.png");
-        l2q1.addOption(new LevelTestOption("나", "/img/na.png", false));
+        l2q1.setQuestionImageUrl("/img/ga.png");
+        l2q1.addOption(new LevelTestOption("나", "/img/ma.png", false));
         l2q1.addOption(new LevelTestOption("가", "/img/ga.png", true));
-        l2q1.addOption(new LevelTestOption("다", "/img/da.png", false));
+        l2q1.addOption(new LevelTestOption("다", "/img/ra.png", false));
 
         LevelTestQuestion l2q2 = new LevelTestQuestion();
         l2q2.setLevel(2);
@@ -146,7 +146,7 @@ public class DataLoader implements CommandLineRunner {
         l3q2.setPrompt("그림을 보고, 빠진 글자를 찾아 고르세요.");
         l3q2.setQuestionImageUrl("/img/shoes_blank.png");
         l3q2.addOption(new LevelTestOption("산", "/img/san.png", false));
-        l3q2.addOption(new LevelTestOption("심", "/img/shim.png", false));
+        l3q2.addOption(new LevelTestOption("심", "/img/so.png", false));
         l3q2.addOption(new LevelTestOption("신", "/img/shin.png", true));
 
         questionRepository.saveAll(List.of(l3q1, l3q2));
