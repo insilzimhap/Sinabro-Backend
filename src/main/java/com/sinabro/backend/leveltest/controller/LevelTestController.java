@@ -25,6 +25,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @RestController
 @RequestMapping("/api/level-test")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 @Tag(
         name = "Level Test",
         description = "레벨 테스트(부모 체크리스트 + 유아 문항) 조회 API"
@@ -40,7 +41,7 @@ public class LevelTestController {
             summary = "레벨 테스트 데이터 조회",
             description = """
                     부모 체크리스트 문항들과 유아 레벨 테스트 문항을 함께 반환
-                    * 이름 고르기(type=\"이름 고르기\") 문제는 서버가 해당 **자녀 이름**을 정답 텍스트로 동적 치환.
+                    * 이름 고르기(type="이름 고르기") 문제는 서버가 해당 **자녀 이름**을 정답 텍스트로 동적 치환.
                     """
     )
     @ApiResponses({
@@ -70,10 +71,11 @@ public class LevelTestController {
 
         String childName = child.getChildName();  // 또는 childNickName도 가능
 
-        // ✅ 2. 부모 체크리스트
+        // ✅ 2. 부모 체크리스트 (정렬된 순서 + questionOrder 포함)
         List<ParentQuestionDTO> parentQuestions = parentRepo.findAllByOrderByQuestionOrder().stream()
                 .map(p -> new ParentQuestionDTO(
                         p.getId(),
+                        p.getQuestionOrder(), // 🔥 추가: 정렬/매핑용
                         p.getQuestionText(),
                         p.getOptions().stream()
                                 .map(o -> new ParentOptionDTO(o.getId(), o.getOptionText()))
