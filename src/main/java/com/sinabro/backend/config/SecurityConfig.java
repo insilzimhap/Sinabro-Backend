@@ -1,6 +1,6 @@
 package com.sinabro.backend.config;
 
-import com.sinabro.backend.admin.user.service.AdminUserDetailsService;
+import com.sinabro.backend.user.admin.service.AdminUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;

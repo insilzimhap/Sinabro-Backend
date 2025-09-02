@@ -18,11 +18,18 @@
       <h3>회원 검색</h3>
       <div class="search-bar">
         <select id="searchField">
+          <option value="all">전체</option>
           <option value="parentName">부모 이름</option>
-          <option value="childName" disabled>자식 이름</option>
-          <option value="email" disabled>이메일</option>
+          <option value="childName">자식 이름</option>
+          <option value="email">이메일</option>
         </select>
+
+
         <input id="searchInput" type="text" placeholder="검색어를 입력하세요">
+
+        <!-- 작성일(단일 날짜) -->
+        <input type="date" id="date" />
+
         <button id="searchBtn" onclick="searchMembers()">검색</button>
       </div>
 
@@ -106,26 +113,46 @@
               .replace(/'/g, "&#039;");
     }
 
-    // 🔎 검색(1차: 프론트 필터) — 백엔드 연동 전 임시
-    document.getElementById("searchBtn").addEventListener("click", async () => {
-      const q = document.getElementById("searchInput").value.trim().toLowerCase();
-      const field = document.getElementById("searchField").value;
+    // 🔎 서버 검색
+    async function searchMembers() {
+      const field = document.getElementById("searchField").value;   // all | parentName | childName | email
+      const q = document.getElementById("searchInput").value.trim();
+      const date = document.getElementById("date").value;          // yyyy-MM-dd (옵션)
 
-      // 전체 목록 불러와서 프론트에서 필터
-      const res = await apiFetch("/api/admin/users");
-      if (!res) return;
-      const all = await res.json();
-
-      let filtered = all;
-      if (q) {
-        if (field === "parentName") {
-          filtered = all.filter(u => (u.name || "").toLowerCase().includes(q));
-        }
-        // childName, email은 추후 백엔드 검색 API 붙이면서 활성화
+      // 아무 것도 없으면 전체 목록
+      if (!q && !date) {
+        return loadUsers();
       }
 
-      renderUsers(filtered);
+      const params = new URLSearchParams();
+      if (q) params.set("q", q);
+      if (field) params.set("field", field);
+
+      // 단일 날짜를 startDate & endDate로 둘 다 전송 (그 날짜 하루만 필터)
+      if (date) {
+        params.set("startDate", date);
+        params.set("endDate", date);
+      }
+
+      try {
+        const res = await apiFetch(`/api/admin/users/search?${params.toString()}`);
+        if (!res) return;
+        if (!res.ok) throw new Error(`검색 실패: ${res.status}`);
+        renderUsers(await res.json());
+      } catch (e) {
+        console.warn(e);
+        // 폴백: 전체 목록
+        loadUsers();
+      }
+    }
+
+    // 이벤트 바인딩 (버튼/엔터/날짜/셀렉트 변경)
+    document.getElementById("searchBtn").addEventListener("click", searchMembers);
+    document.getElementById("searchInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") searchMembers();
     });
+    document.getElementById("searchField").addEventListener("change", searchMembers);
+    document.getElementById("date").addEventListener("change", searchMembers);
 
     // 페이지 첫 로드 시 목록 가져오기
     window.addEventListener("DOMContentLoaded", loadUsers);

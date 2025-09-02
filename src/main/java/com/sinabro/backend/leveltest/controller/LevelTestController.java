@@ -1,11 +1,11 @@
 package com.sinabro.backend.leveltest.controller;
 
-import com.sinabro.backend.user.child.entity.Child;
+import com.sinabro.backend.user.entity.Child;
 import com.sinabro.backend.leveltest.dto.*;
 import com.sinabro.backend.leveltest.entity.LevelTestQuestion;
 import com.sinabro.backend.leveltest.repository.LevelTestQuestionRepository;
 import com.sinabro.backend.leveltest.repository.ParentQuestionRepository;
-import com.sinabro.backend.user.child.repository.ChildRepository;
+import com.sinabro.backend.user.repository.ChildRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 

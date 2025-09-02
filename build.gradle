@@ -42,6 +42,10 @@ dependencies {
 	// swagger
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'
 
+	// Bean Validation 스타터: @Valid/@Validated + @Min/@Max 검증 활성화
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+
 }
 
 tasks.named('test') {

@@ -1,54 +1,185 @@
-body {
-      font-family: 'Arial', sans-serif;
-      background-color: #f0f4f8;
-      margin: 0;
-      padding: 0;
-    }
+/*body {*/
+/*      font-family: 'Arial', sans-serif;*/
+/*      background-color: #f0f4f8;*/
+/*      margin: 0;*/
+/*      padding: 0;*/
+/*    }*/
 
-    .edit-container {
-      background: white;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-      width: 400px;
-      margin: 40px auto;
-    }
+/*    .edit-container {*/
+/*      background: white;*/
+/*      padding: 30px;*/
+/*      border-radius: 10px;*/
+/*      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);*/
+/*      width: 400px;*/
+/*      margin: 40px auto;*/
+/*    }*/
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
+/*    table {*/
+/*      width: 100%;*/
+/*      border-collapse: collapse;*/
+/*    }*/
 
-    table td {
-      padding: 10px 0;
-    }
+/*    table td {*/
+/*      padding: 10px 0;*/
+/*    }*/
 
-    table input {
-      width: 100%;
-      padding: 8px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-    }
+/*    table input {*/
+/*      width: 100%;*/
+/*      padding: 8px;*/
+/*      border: 1px solid #ccc;*/
+/*      border-radius: 4px;*/
+/*    }*/
 
-    .button-row {
-      text-align: center;
-      padding-top: 20px;
-    }
+/*    .button-row {*/
+/*      text-align: center;*/
+/*      padding-top: 20px;*/
+/*    }*/
 
-    .button-row button {
-      padding: 8px 16px;
-      border: none;
-      border-radius: 4px;
-      background-color: #4caf50;
-      color: white;
-      cursor: pointer;
-      margin: 0 5px;
-    }
+/*    .button-row button {*/
+/*      padding: 8px 16px;*/
+/*      border: none;*/
+/*      border-radius: 4px;*/
+/*      background-color: #4caf50;*/
+/*      color: white;*/
+/*      cursor: pointer;*/
+/*      margin: 0 5px;*/
+/*    }*/
 
-    .button-row button.cancel {
-      background-color: #f44336;
-    }
+/*    .button-row button.cancel {*/
+/*      background-color: #f44336;*/
+/*    }*/
 
-    .button-row button:hover {
-      opacity: 0.9;
-    }
+/*    .button-row button:hover {*/
+/*      opacity: 0.9;*/
+/*    }*/
+
+
+/* ===== Base ===== */
+:root{
+    --bg:      #f5f7fb;
+    --card:    #fff;
+    --text:    #111827;
+    --muted:   #6b7280;
+    --line:    #e5e7eb;
+    --primary: #22c55e;
+    --danger:  #ef4444;
+    --radius:  14px;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+    margin:0;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Arial, sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    line-height:1.4;
+    font-size:16px;                /* ✅ 기본 글자 크기 */
+}
+
+/* ===== Card ===== */
+.edit-container{
+    width: 720px;
+    margin: 40px auto;
+    padding: 28px 32px;
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: 0 10px 26px rgba(0,0,0,.06);
+}
+
+.edit-container h2{
+    margin: 0 0 18px;
+    font-size: 25px;
+    font-weight: 800;
+}
+
+/* 폼을 세로로 쭉 쌓이게 */
+.edit-container form{
+    display:flex;
+    flex-direction:column;
+}
+
+/* ===== Form table ===== */
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+td{
+    padding: 10px 0;
+    vertical-align: middle;        /* ✅ 세로 정렬 맞춤 */
+}
+td:first-child{
+    width: 120px;
+    font-weight: 700;
+    font-size: 16px;
+}
+
+/* Input */
+table input{
+    width: 100%;
+    height: 42px;
+    padding: 8px 12px;
+    font-size: 16px;
+    border:1px solid var(--line);
+    border-radius:10px;
+    outline: none;
+    transition: border .15s, box-shadow .15s;
+    background: #fff;
+}
+table input:focus{
+    border-color:#a7f3d0;
+    box-shadow: 0 0 0 3px rgba(34,197,94,.14);
+}
+table input:disabled{
+    background:#f8fafc;
+    color:#6b7280;
+}
+
+/* 힌트 */
+.hint{
+    display: none;
+    margin-top: 6px;
+    font-size: 13px;
+    color: #e53935;
+}
+.hint.static{
+    display: block;
+    color: #7a7f87;
+}
+input.is-invalid + .hint,
+input.is-invalid ~ .hint{
+    display: block;
+}
+
+/* ===== Buttons ===== */
+.button-row{
+    display:flex;
+    justify-content:center;
+    gap:12px;
+    margin-top: 18px;
+}
+.button-row button{
+    min-width: 120px;
+    height: 40px;
+    border:0;
+    border-radius:10px;
+    font-size: 16px;
+    font-weight:700;
+    cursor:pointer;
+    color:#fff;
+    background: var(--primary);
+    box-shadow: 0 6px 12px rgba(34,197,94,.18);
+    transition: transform .05s, filter .2s;
+}
+.button-row button:hover{
+    filter: brightness(1.02);
+}
+.button-row button:active{
+    transform: translateY(1px);
+}
+.button-row .cancel{
+    background: var(--danger) !important;
+    box-shadow: 0 6px 12px rgba(239,68,68,.18);
+}
+
+

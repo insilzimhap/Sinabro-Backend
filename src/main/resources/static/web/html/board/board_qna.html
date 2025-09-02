@@ -19,24 +19,26 @@
 
     <div class="search-bar">
       <input type="text" id="searchInput" placeholder="검색어를 입력하세요" />
-      <select id="statusFilter">
-        <option value="all">전체</option>
-        <option value="done">제목</option>
+      <!-- 검색 필드 -->
+      <select id="field">
+        <option value="">전체</option>
+        <option value="title">제목</option>
         <option value="writerId">아이디</option>
         <option value="writerName">이름</option>
-        </select>
-        
-        <select id="status">
+      </select>
+
+      <!-- 상태 -->
+      <select id="status">
         <option value="">전체</option>
         <option value="답변 전">답변 전</option>
         <option value="답변 완료">답변 완료</option>
       </select>
 
       <input type="date" id="startDate">
-      <spam>~</spam>
+      <span>~</span>
       <input type="date" id="endDate">
-      
-      <button onclick="filterQuestions()">검색</button>
+
+      <button onclick="loadList()">검색</button>
     </div>
 
     <table>
@@ -51,52 +53,81 @@
           <th>액션</th>
         </tr>
       </thead>
-      <tbody id="questionTable">
-        <tr data-status="waiting">
-          <td>1</td>
-          <td>사용법 관련 문의</td>
-          <td>2025-04-11</td>
-          <td>심정화</td>
-          <td>hwa123</td>
-          <td><span class="status-box status-waiting">답변 전</span></td>
-          <td><button onclick="location.href='board_qna_answer.html'" class="manage-btn">관리</button></td>
-        </tr>
-        <tr data-status="done">
-          <td>2</td>
-          <td>보상이 안왔어요.</td>
-          <td>2025-04-10</td>
-          <td>박성민</td>
-          <td>park321</td>
-          <td><span class="status-box status-done">답변 완료</span></td>
-          <td><button onclick="location.href='board_qna_answer1.html'" class="manage-btn">관리</button></td>
-        </tr>
-      </tbody>
+      <tbody id="questionTable"></tbody>
     </table>
   </main>
 
   <script>
-    function filterQuestions() {
-      const keyword = document.getElementById('searchInput').value.toLowerCase();
-      const status = document.getElementById('statusFilter').value;
-      const rows = document.querySelectorAll('#questionTable tr');
+    // 공통 헤더
+    fetch("/web/header.html").then(r=>r.text()).then(h=>{
+      document.getElementById("header-container").innerHTML = h;
+      if (typeof checkLogin === "function") checkLogin();
+    });
 
-      rows.forEach(row => {
-        const text = row.innerText.toLowerCase();
-        const rowStatus = row.getAttribute('data-status');
-        const matchKeyword = text.includes(keyword);
-        const matchStatus = status === '' || status === rowStatus;
+    // 목록 불러오기
+    async function loadList() {
+      const q         = document.getElementById('searchInput').value.trim();
+      const field     = document.getElementById('field').value;
+      const status    = document.getElementById('status').value;
+      const startDate = document.getElementById('startDate').value;
+      const endDate   = document.getElementById('endDate').value;
 
-        row.style.display = (matchKeyword && matchStatus) ? '' : 'none';
+      const params = new URLSearchParams();
+      if (q)         params.set('q', q);
+      if (field)     params.set('field', field);        // "", title, writerId, writerName
+      if (status)    params.set('status', status);      // "", 답변 전, 답변 완료
+      if (startDate) params.set('startDate', startDate);
+      if (endDate)   params.set('endDate', endDate);
+
+      const res = await apiFetch(`/api/admin/inquiries?${params.toString()}`);
+      if (!res || !res.ok) {
+        alert('목록을 불러오지 못했습니다.');
+        return;
+      }
+      const list = await res.json(); // AdminInquiryListItemDto[]
+
+      const tbody = document.getElementById('questionTable');
+      tbody.innerHTML = '';
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#777;">검색 결과가 없습니다.</td></tr>`;
+        return;
+      }
+
+      list.forEach((item, idx) => {
+        const tr = document.createElement('tr');
+        const created = item.createdAt ? item.createdAt.split('T')[0] : '';
+        const statusClass = item.status === '답변 완료' ? 'status-done' : 'status-waiting';
+        tr.innerHTML = `
+          <td>${idx + 1}</td>
+          <td>${escapeHtml(item.title)}</td>
+          <td>${created}</td>
+          <td>${escapeHtml(item.writerName || '-')}</td>
+          <td>${escapeHtml(item.writerId || '-')}</td>
+          <td><span class="status-box ${statusClass}">${item.status}</span></td>
+          <td><button class="manage-btn" onclick="goDetail(${item.id})">관리</button></td>
+        `;
+        tbody.appendChild(tr);
       });
     }
+
+
+    function goDetail(id){
+      location.href = `board_qna_answer.html?id=${encodeURIComponent(id)}`;
+    }
+
+    // 간단 XSS 방지
+    function escapeHtml(s){
+      return String(s ?? '')
+              .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+              .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+    }
+
+    // 최초 로딩
+    loadList();
   </script>
-  <script>
-    fetch("/web/header.html")
-      .then(res => res.text())
-      .then(data => {
-        document.getElementById("header-container").innerHTML = data;
-        checkLogin(); // 헤더 붙인 뒤 호출!
-      });
-  </script>
+   <script>
+     // 공통 유틸 로딩
+     fetch("/web/js/common.js");
+   </script>
 </body>
 </html>

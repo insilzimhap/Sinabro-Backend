@@ -15,21 +15,12 @@
   <main>
     <h2>문의사항 관리</h2>
     <div class="info">
-      <p><strong>제목:</strong> 사용법 관련 문의</p>
-      <p><strong>작성자:</strong> 심정화</p>
-      <p><strong>아이디:</strong> hwa123</p>
-      <p><strong>작성일:</strong> 2025-04-11</p>
+      <p><strong>제목:</strong> <span id="q-title">-</span></p>
+      <p><strong>작성자:</strong> <span id="q-writerName">-</span></p>
+      <p><strong>아이디:</strong> <span id="q-writerId">-</span></p>
+      <p><strong>작성일:</strong> <span id="q-created">-</span></p>
       <p><strong>문의 내용:</strong></p>
-      <div class="scroll-box">
-        안녕하세요, 시스템 사용법에 대해 문의드립니다. 어떻게 이용하나요?냐냐냐냐냐ㅑ냔
-        이 기능을 사용하려면 메뉴에서 설정을 눌러주세요!냐냐냔냐냐냐냐냐냐
-        자세한 사용 방법은 아래 설명을 참고하세요. 
-        (길게 써서 스크롤 테스트!)
-        냐냐냐냐냐냐
-        냐냐냐ㅐ냐냔
-        냐냐냐냐냔
-        ㅐㄴ내내내내내
-      </div>
+      <div class="scroll-box" id="q-content">-</div>
     </div>
 
     <label for="reply">답변 작성</label>
@@ -42,23 +33,68 @@
   </main>
 
   <script>
-    // 공통 헤더 삽입
-    fetch("/web/header.html")
-      .then(res => res.text())
-      .then(data => {
-        document.getElementById("header-container").innerHTML = data;
-        checkLogin(); // 헤더 붙인 뒤 호출!
+    // 공통 헤더
+    fetch("/web/header.html").then(r=>r.text()).then(h=>{
+      document.getElementById("header-container").innerHTML = h;
+      if (typeof checkLogin === "function") checkLogin();
+    });
+
+    const params = new URLSearchParams(location.search);
+    const inquiryId = params.get('id');
+    if (!inquiryId) {
+      alert('잘못된 접근입니다.');
+      location.href = 'board_qna.html';
+    }
+
+    async function loadDetail(){
+      const res = await apiFetch(`/api/admin/inquiries/${encodeURIComponent(inquiryId)}`);
+      if (!res || !res.ok){
+        alert('상세 정보를 불러오지 못했습니다.');
+        return;
+      }
+      const d = await res.json(); // AdminInquiryDetailDto
+
+      document.getElementById('q-title').innerText = d.title ?? '-';
+      document.getElementById('q-writerName').innerText = d.writerName ?? '-';
+      document.getElementById('q-writerId').innerText = d.writerId ?? '-';
+      document.getElementById('q-created').innerText = d.createdAt ? d.createdAt.split('T')[0] : '-';
+      document.getElementById('q-content').innerText = d.content ?? '-';
+
+      // ✅ 답변이 있으면 textarea에 채움, 없으면 공란
+      document.getElementById('reply').value = d.replyContent ?? '';
+    }
+
+    async function saveReply(){
+      const content = document.getElementById('reply').value.trim();
+      if (!content){
+        alert('답변을 입력해주세요!');
+        return;
+      }
+
+      const body = { content, adminUserId: "insilAdmin" };
+
+      const res = await apiFetch(`/api/admin/inquiries/${encodeURIComponent(inquiryId)}/reply`, {
+        method: 'PUT',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify(body)
       });
 
-    function saveReply() {
-      const replyText = document.getElementById('reply').value.trim();
-      if (replyText) {
+      if (!res) return; // 공통에서 로그인 처리됐을 수 있음
+
+      if (res.ok){
         alert('답변이 저장되었습니다!');
-        window.location.href = 'board_qna.html';
+        location.href = 'board_qna.html';
+      } else if (res.status === 404){
+        alert('대상 문의 또는 관리자 계정을 찾을 수 없습니다.');
+      } else if (res.status === 400){
+        const msg = await res.text().catch(()=> '');
+        alert(msg || '요청 값이 올바르지 않습니다.');
       } else {
-        alert('답변을 입력해주세요!');
+        alert('저장 중 오류가 발생했습니다.');
       }
     }
+
+    loadDetail();
   </script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 package com.sinabro.backend.lobby.controller;
 
 import com.sinabro.backend.lobby.service.ParentLobbyService;
-import com.sinabro.backend.user.child.entity.Child;
+import com.sinabro.backend.user.entity.Child;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
