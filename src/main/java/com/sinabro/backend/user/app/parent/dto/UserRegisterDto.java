@@ -15,4 +15,7 @@ public class UserRegisterDto {
     private String role; // "parent"
     private String socialType; // "kakao" | "google" | "local"
     private String socialId;
+
+    /** ✅ 회원가입 화면의 수신동의/개인정보동의 묶음 - 채 */
+    private ParentSettingSignupRequestDto settings;
 }
