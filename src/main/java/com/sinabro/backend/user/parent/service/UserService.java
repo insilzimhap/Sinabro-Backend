@@ -120,4 +120,12 @@ public class UserService {
         dto.setSocialId(user.getSocialId());
         return dto;
     }
+
+    public boolean isUserIdAvailable(String userId) {
+        if (userId == null || userId.isBlank()) {
+            throw new IllegalArgumentException("userId가 비어있습니다.");
+        }
+        // UserRepository 가 JpaRepository<User, String> 이면 existsById 사용 가능
+        return !userRepository.existsById(userId);
+    }
 }
