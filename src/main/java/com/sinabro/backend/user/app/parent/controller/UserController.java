@@ -3,7 +3,12 @@ package com.sinabro.backend.user.app.parent.controller;
 import com.sinabro.backend.user.app.parent.dto.*;
 import com.sinabro.backend.user.app.exception.DuplicateUserException;
 import com.sinabro.backend.user.app.parent.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
@@ -90,6 +95,7 @@ public class UserController {
         dto.setUserLanguage(req.getUserLanguage()); // null이면 서비스/엔티티 @PrePersist로 기본값 처리 가능
         dto.setRole(req.getRole());                 // null이면 서비스에서 'parent'로 처리해도 됨
         dto.setSocialType("local");
+        dto.setSettings(req.getSettings()); // ✅ 이 줄 추가
 
         try {
             UserRegisterDto saved = userService.registerUser(dto);
@@ -124,15 +130,37 @@ public class UserController {
                     content = @Content(schema = @Schema(implementation = UserRegisterDto.class))
             )
     })
-    public ResponseEntity<UserRegisterDto> socialRegister(
+    public ResponseEntity<?> socialRegister(
             @RequestBody(
-                    description = "소셜 회원정보(업서트 대상)",
+                    description = "소셜 회원정보(추가 정보 포함, 업서트 대상)",
                     required = true,
-                    content = @Content(schema = @Schema(implementation = UserRegisterDto.class))
+                    content = @Content(schema = @Schema(implementation = SocialRegisterRequest.class))
             )
-            @org.springframework.web.bind.annotation.RequestBody UserRegisterDto dto
+            @Valid @org.springframework.web.bind.annotation.RequestBody SocialRegisterRequest req
     ) {
-        return ResponseEntity.ok(userService.registerSocialUser(dto));
+        // 1) 비밀번호 필수 + 일치 검사(빈문자 포함)
+        if (!org.springframework.util.StringUtils.hasText(req.getNewPassword()) ||
+            !org.springframework.util.StringUtils.hasText(req.getConfirmPw()) ||
+            !req.getNewPassword().equals(req.getConfirmPw())) {
+            return ResponseEntity.badRequest().body("비밀번호와 비밀번호 확인이 일치하지 않습니다.");
+        }
+
+        // 2) 서비스 DTO로 매핑 (비밀번호는 userPw 로 전달 → 서비스에서 해시 저장)
+        UserRegisterDto dto = new UserRegisterDto();
+        dto.setUserId(req.getUserId());
+        dto.setUserEmail(req.getUserEmail());
+        dto.setUserPw(req.getNewPassword());     // ⬅️ 여기!
+        dto.setUserName(req.getUserName());
+        dto.setUserPhoneNum(req.getUserPhoneNum());
+        dto.setUserLanguage(req.getUserLanguage());
+        dto.setRole(req.getRole());
+        dto.setSocialType(req.getSocialType());
+        dto.setSocialId(req.getSocialId());
+        dto.setSettings(req.getSettings());
+
+        var saved = userService.registerSocialUser(dto);
+        saved.setUserPw(null); // 안전상 응답에서 제거(서비스에서도 null 세팅하지만, 한 번 더)
+        return ResponseEntity.ok(saved);
     }
 
     // 로컬 로그인
@@ -200,4 +228,18 @@ public class UserController {
                         .build()
         );
     }
+
+    // src/main/java/.../UserController.java
+    @PostMapping("/logout")
+    @Operation(
+            summary = "로그아웃",
+            description = "서버는 별도 인증 상태를 보관하지 않습니다. 이 엔드포인트는 로그만 남기고 204를 반환합니다."
+    )
+    public ResponseEntity<Void> logout() {
+        org.slf4j.LoggerFactory.getLogger(getClass())
+                .info("[로그아웃] 요청 수신 (서버 보관 상태 없음) → 204 반환");
+        return ResponseEntity.noContent().build(); // 204
+    }
+
 }
+

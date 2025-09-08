@@ -23,11 +23,11 @@ import java.util.Map;
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
-    // @RequestParam/@PathVariable 검증 실패 → 400으로 변환
+    // @RequestParam/@PathVariable 검증 실패 → 400
     @ExceptionHandler(jakarta.validation.ConstraintViolationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, Object> handleConstraint(jakarta.validation.ConstraintViolationException e) {
-        log.warn("[400 Validation] {}", e.getMessage());  // '오류' 로그
+        log.warn("[400 경로/쿼리 검증 실패] {}", e.getMessage());
         return Map.of(
                 "status", 400,
                 "error", "Bad Request",
@@ -35,19 +35,23 @@ public class GlobalExceptionHandler {
         );
     }
 
-    // @RequestBody @Valid 바인딩 실패 → 400
+    // @RequestBody @Valid 바인딩 실패 → 400  (★ 유일한 핸들러)
     @ExceptionHandler(org.springframework.web.bind.MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, Object> handleMethodArgNotValid(org.springframework.web.bind.MethodArgumentNotValidException e) {
-        var errors = e.getBindingResult().getFieldErrors().stream()
-                .map(fe -> Map.of("field", fe.getField(), "message", fe.getDefaultMessage()))
-                .toList();
-        log.warn("[400 Validation] {} -> {}", e.getObjectName(), errors);
+    public Map<String, Object> handleMethodArgumentNotValid(org.springframework.web.bind.MethodArgumentNotValidException e) {
+        var fieldErrors = e.getBindingResult().getFieldErrors().stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        org.springframework.validation.FieldError::getField,
+                        org.springframework.context.support.DefaultMessageSourceResolvable::getDefaultMessage,
+                        (a, b) -> a,
+                        java.util.LinkedHashMap::new
+                ));
+        log.warn("[400 바디 검증 실패] {}", fieldErrors);
         return Map.of(
                 "status", 400,
                 "error", "Bad Request",
-                "message", "validation failed",
-                "errors", errors
+                "message", "요청 바디 검증 실패",
+                "fields", fieldErrors
         );
     }
 
@@ -55,7 +59,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, Object> handleUnreadable(org.springframework.http.converter.HttpMessageNotReadableException e) {
-        log.warn("[400 Parse] {}", e.getMostSpecificCause() != null ? e.getMostSpecificCause().getMessage() : e.getMessage());
+        String msg = (e.getMostSpecificCause() != null) ? e.getMostSpecificCause().getMessage() : e.getMessage();
+        log.warn("[400 본문 파싱 실패] {}", msg);
         return Map.of(
                 "status", 400,
                 "error", "Bad Request",
@@ -63,7 +68,7 @@ public class GlobalExceptionHandler {
         );
     }
 
-    // 서비스/컨트롤러에서 명시적으로 던진 ResponseStatusException 유지
+    // 명시적 상태 예외 → 선언된 상태 유지
     @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
     public org.springframework.http.ResponseEntity<Map<String, Object>> handleRse(org.springframework.web.server.ResponseStatusException e) {
         var status = e.getStatusCode();
@@ -77,11 +82,11 @@ public class GlobalExceptionHandler {
         );
     }
 
-    // 잘못된 파라미터 등 → 400
+    // 잘못된 파라미터 → 400
     @ExceptionHandler(IllegalArgumentException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, Object> handleIllegalArg(IllegalArgumentException e) {
-        log.warn("[400 IllegalArgument] {}", e.getMessage());
+        log.warn("[400 잘못된 요청] {}", e.getMessage());
         return Map.of(
                 "status", 400,
                 "error", "Bad Request",
@@ -93,7 +98,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public Map<String, Object> handleDataIntegrity(org.springframework.dao.DataIntegrityViolationException e) {
-        log.error("[409 Conflict] {}", e.getMostSpecificCause() != null ? e.getMostSpecificCause().getMessage() : e.getMessage());
+        String msg = (e.getMostSpecificCause() != null) ? e.getMostSpecificCause().getMessage() : e.getMessage();
+        log.error("[409 데이터 충돌] {}", msg);
         return Map.of(
                 "status", 409,
                 "error", "Conflict",
@@ -105,12 +111,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Map<String, Object> handleAny(Exception e) {
-        log.error("[500] {}", e.getMessage(), e);
+        log.error("[500 내부 오류] {}", e.getMessage(), e);
         return Map.of(
                 "status", 500,
                 "error", "Internal Server Error",
                 "message", "unexpected error"
         );
     }
+
 
 }
