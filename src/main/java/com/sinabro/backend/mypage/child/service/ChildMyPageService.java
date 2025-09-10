@@ -68,6 +68,7 @@ public class ChildMyPageService {
 
         // 변경 감지로 업데이트
         Child saved = childRepository.save(c);
+        log.info("[Child-Profile] 수정 완료 childId={}", childId);
         return toProfileDto(saved);
     }
 
@@ -93,19 +94,57 @@ public class ChildMyPageService {
         // OK → 아무것도 하지 않고 리턴
     }
 
-    /**
-     * [2단계] 자녀 삭제 (보호 로직 그대로 유지)
-     * - 안전을 위해 여기서도 같은 검증을 한 번 더 수행(아이디/비번 위변조 방지)
-     */
-    @Transactional
-    public void deleteChild(String parentUserId, String childId, ChildDeleteRequestDto req) {
-        // 1) 검증 재확인
+
+    /** [2단계-응답형] 자녀 삭제 검증 + 자녀 이름 반환(모달용) */
+    public ChildDeleteResponseDto verifyChildDelete(String parentUserId, String childId, ChildDeleteRequestDto req) {
+        log.info("[Child-Delete-Verify] 시작 parentUserId={} childId={}", parentUserId, childId);
+
+        // 권한/비밀번호 검증 (예외 발생 시 컨트롤러로 전파)
         verifyChildDeleteAuth(parentUserId, childId, req.getParentPassword());
 
-        // 2) 연관 데이터 정리 → 자녀 삭제
+        // 모달 표기를 위해 자녀 이름 로드
+        Child child = childRepository.findById(childId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "자녀를 찾을 수 없습니다."));
+
+        log.info("[Child-Delete-Verify] 성공 parentUserId={} childId={}", parentUserId, childId);
+        return ChildDeleteResponseDto.builder()
+                .childId(child.getChildId())
+                .childName(child.getChildName())
+                .verified(true)   // 검증 완료
+                .deleted(false)   // 아직 삭제 전
+                .build();
+    }
+
+    /**
+     * [3단계-응답형] 자녀 삭제
+     * - 안전을 위해 같은 검증을 한번 더 수행
+     * - 삭제 전 자녀 이름을 먼저 확보하여 응답에 사용
+     */
+    @Transactional
+    public ChildDeleteResponseDto deleteChildAndReturn(String parentUserId, String childId, ChildDeleteRequestDto req) {
+        log.info("[Child-Delete] 시작 parentUserId={} childId={}", parentUserId, childId);
+
+        // 1) 재검증(위변조 방지)
+        verifyChildDeleteAuth(parentUserId, childId, req.getParentPassword());
+
+        // 2) 응답을 위해 자녀 이름 미리 확보
+        Child child = childRepository.findById(childId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "자녀를 찾을 수 없습니다."));
+        String childName = child.getChildName();
+
+        // 3) 연관 데이터 정리 → 자녀 삭제
         characterSelectionRepository.deleteByChildId(childId);
         childRepository.deleteById(childId);
+
+        log.info("[Child-Delete] 완료 parentUserId={} childId={}", parentUserId, childId);
+        return ChildDeleteResponseDto.builder()
+                .childId(childId)
+                .childName(childName)
+                .verified(true)
+                .deleted(true)
+                .build();
     }
+
 
     private ChildProfileResponseDto toProfileDto(Child c) {
         return ChildProfileResponseDto.builder()

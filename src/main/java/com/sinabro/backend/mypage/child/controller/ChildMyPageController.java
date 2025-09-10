@@ -32,25 +32,33 @@ public class ChildMyPageController {
         return ResponseEntity.ok(updated);
     }
 
-    /** [1단계] 자녀 삭제 사전 검증(부모 비밀번호 확인) */
+    /**
+     * [1단계] 자녀 삭제 사전 검증(부모 비밀번호 확인)
+     * - 204 → 200 + ChildDeleteResponseDto 로 변경 (모달용 이름 반환)
+     */
     @PostMapping("/parent/{parentUserId}/children/{childId}/verify-delete")
-    public ResponseEntity<Void> verifyDelete(
+    public ResponseEntity<ChildDeleteResponseDto> verifyDelete(
             @PathVariable String parentUserId,
             @PathVariable String childId,
             @Valid @RequestBody ChildDeleteRequestDto req
     ) {
-        childMyPageService.verifyChildDeleteAuth(parentUserId, childId, req.getParentPassword());
-        return ResponseEntity.noContent().build(); // 204
+        var dto = childMyPageService.verifyChildDelete(parentUserId, childId, req);
+        return ResponseEntity.ok(dto); // 200 OK + { childId, childName, verified=true, deleted=false }
     }
 
-    /** [2단계] 자녀 계정 삭제 (부모 비밀번호 다시 전달) */
+    /**
+     * [2단계] 자녀 계정 삭제 (부모 비밀번호 다시 전달)
+     * - 204 → 200 + ChildDeleteResponseDto 로 변경 (토스트용 이름/상태 반환)
+     */
     @DeleteMapping("/parent/{parentUserId}/children/{childId}")
-    public ResponseEntity<Void> deleteChild(
+    public ResponseEntity<ChildDeleteResponseDto> deleteChild(
             @PathVariable String parentUserId,
             @PathVariable String childId,
             @Valid @RequestBody ChildDeleteRequestDto req
     ) {
-        childMyPageService.deleteChild(parentUserId, childId, req);
-        return ResponseEntity.noContent().build();
+        var dto = childMyPageService.deleteChildAndReturn(parentUserId, childId, req);
+        return ResponseEntity.ok(dto); // 200 OK + { childId, childName, verified=true, deleted=true }
     }
+
+
 }
