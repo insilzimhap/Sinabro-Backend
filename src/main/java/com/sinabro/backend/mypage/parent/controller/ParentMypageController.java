@@ -52,4 +52,41 @@ public class ParentMypageController {
         var updated = parentMypageService.updateProfile(userId, req);
         return ResponseEntity.ok(updated);
     }
+
+    /** [1단계] 부모 탈퇴 사전 검증 (현재 비밀번호) */
+    @PostMapping("/{userId}/verify-delete")
+    public ResponseEntity<Void> verifyDelete(
+            @PathVariable String userId,
+            @RequestBody @Valid ParentDeleteRequestDto req
+    ) {
+        parentMypageService.verifyParentDeleteAuth(userId, req.getCurrentPassword());
+        return ResponseEntity.noContent().build(); // 204
+    }
+
+    /** [2단계] 부모 탈퇴 */
+    @DeleteMapping("/{userId}")
+    public ResponseEntity<Void> deleteParent(
+            @PathVariable String userId,
+            @RequestBody @Valid ParentDeleteRequestDto req
+    ) {
+        parentMypageService.deleteParent(userId, req);
+        return ResponseEntity.noContent().build(); // 204
+    }
+
+    // --- 설정 프리필 조회 ---
+    @GetMapping("/{userId}/settings")
+    public ResponseEntity<ParentSettingResponseDto> getSettings(@PathVariable String userId) {
+        var dto = parentMypageService.getSettings(userId);
+        return ResponseEntity.ok(dto);
+    }
+
+    // --- 설정 저장(부분 업데이트) ---
+    @PatchMapping("/{userId}/settings")
+    public ResponseEntity<ParentSettingResponseDto> updateSettings(
+            @PathVariable String userId,
+            @RequestBody @Valid ParentSettingUpdateRequestDto req
+    ) {
+        var saved = parentMypageService.updateSettings(userId, req);
+        return ResponseEntity.ok(saved);
+    }
 }

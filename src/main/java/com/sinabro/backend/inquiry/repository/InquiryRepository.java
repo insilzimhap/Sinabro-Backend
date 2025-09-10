@@ -3,6 +3,7 @@ package com.sinabro.backend.inquiry.repository;
 import com.sinabro.backend.inquiry.entity.Inquiry;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -19,6 +20,10 @@ public interface InquiryRepository
     // App 전용: 상세 조회(권한 확인 겸용)
     Optional<Inquiry> findByIdAndParent_UserId(Long id, String parentUserId);
 
+
+    // 부모가 쓴 문의 전체 삭제
+    @Modifying
+    void deleteByParent_UserId(String userId);
 
     //admin용
     // 전체 최신순

@@ -1,6 +1,8 @@
 package com.sinabro.backend.user.repository;
 import com.sinabro.backend.user.entity.Child;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+
 import java.util.Optional;
 import java.util.List;
 
@@ -20,10 +22,12 @@ public interface ChildRepository extends JpaRepository<Child, String> {
 
     Optional<Child> findByChildIdAndParent_UserId(String childId, String parentUserId);
 
+    List<Child> findAllByParent_UserId(String parentUserId);   // ✅ 부모의 모든 자녀
 
     // admin - 자녀 목록 정렬 (최신순)
     List<Child> findByParent_UserIdOrderByChildCreateDateDesc(String userId);
 
     // admin - 부모 삭제 전에 자녀 전부 제거할 때 사용 (CASCADE가 없어서)
+    @Modifying
     long deleteByParent_UserId(String parentUserId);
 }
