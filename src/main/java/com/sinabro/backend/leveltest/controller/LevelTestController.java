@@ -6,6 +6,7 @@ import com.sinabro.backend.leveltest.entity.LevelTestQuestion;
 import com.sinabro.backend.leveltest.repository.LevelTestQuestionRepository;
 import com.sinabro.backend.leveltest.repository.ParentQuestionRepository;
 import com.sinabro.backend.user.child.repository.ChildRepository;
+import com.sinabro.backend.leveltest.repository.LevelTestChoiceRepository; // ← 추가
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,6 +26,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @RestController
 @RequestMapping("/api/level-test")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 @Tag(
         name = "Level Test",
         description = "레벨 테스트(부모 체크리스트 + 유아 문항) 조회 API"
@@ -34,13 +36,14 @@ public class LevelTestController {
     private final ParentQuestionRepository parentRepo;
     private final LevelTestQuestionRepository questionRepo;
     private final ChildRepository childRepo;
+    private final LevelTestChoiceRepository choiceRepo; // ← 추가
 
     @GetMapping("/questions")
     @Operation(
             summary = "레벨 테스트 데이터 조회",
             description = """
                     부모 체크리스트 문항들과 유아 레벨 테스트 문항을 함께 반환
-                    * 이름 고르기(type=\"이름 고르기\") 문제는 서버가 해당 **자녀 이름**을 정답 텍스트로 동적 치환.
+                    * 이름 고르기(type="이름 고르기") 문제는 서버가 해당 **자녀 이름**을 정답 텍스트로 동적 치환.
                     """
     )
     @ApiResponses({
@@ -70,10 +73,11 @@ public class LevelTestController {
 
         String childName = child.getChildName();  // 또는 childNickName도 가능
 
-        // ✅ 2. 부모 체크리스트
+        // ✅ 2. 부모 체크리스트 (정렬된 순서 + questionOrder 포함)
         List<ParentQuestionDTO> parentQuestions = parentRepo.findAllByOrderByQuestionOrder().stream()
                 .map(p -> new ParentQuestionDTO(
                         p.getId(),
+                        p.getQuestionOrder(), // 🔥 추가: 정렬/매핑용
                         p.getQuestionText(),
                         p.getOptions().stream()
                                 .map(o -> new ParentOptionDTO(o.getId(), o.getOptionText()))
@@ -133,5 +137,47 @@ public class LevelTestController {
         }
 
         return new LevelTestResponseDTO(parentQuestions, levelTestQuestions);
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // ✅ 레벨테스트 상태 조회 (항상 JSON 반환)
+    // ──────────────────────────────────────────────────────────────────────────
+    @GetMapping(value = "/status", produces = "application/json")
+    @Operation(
+            summary = "레벨테스트 완료 여부 확인",
+            description = """
+자녀의 레벨테스트 진행 상태를 반환.
+- completed: 자녀 레벨(1~3)이 있거나, 답안(choice) 기록이 1개 이상이면 true
+- level: child.child_level (없으면 null)
+- choiceCount: 저장된 답안 수
+"""
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "확인 성공",
+                    content = @Content(schema = @Schema(implementation = Map.class)))
+    })
+    public Map<String, Object> status(
+            @Parameter(description = "자녀 ID", required = true, example = "rami")
+            @RequestParam("childId") String childId
+    ) {
+        Map<String, Object> body = new HashMap<>();
+        Child child = childRepo.findById(childId).orElse(null);
+
+        if (child == null) {
+            body.put("completed", false);
+            body.put("level", null);
+            body.put("choiceCount", 0);
+            body.put("reason", "child not found");
+            return body;
+        }
+
+        Integer level = child.getChildLevel();
+        int choiceCount = choiceRepo.findByChildId(childId).size();
+        boolean completed = (level != null && level >= 1 && level <= 3) || (choiceCount > 0);
+
+        body.put("completed", completed);
+        body.put("level", level);
+        body.put("choiceCount", choiceCount);
+        return body;
     }
 }
