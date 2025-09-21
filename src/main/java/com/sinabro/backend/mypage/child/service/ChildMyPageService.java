@@ -53,6 +53,11 @@ public class ChildMyPageService {
             c.setChildBirth(req.getChildBirth());
         }
 
+        // 제한 시간 수정 (null 아니면 반영)
+        if (req.getTimeLimitMinutes() != null) {
+            c.setTimeLimitMinutes(req.getTimeLimitMinutes());
+        }
+
         // 비밀번호 변경 로직 (둘 다 비어있으면 미변경)
         boolean hasNew = StringUtils.hasText(req.getNewPassword());
         boolean hasConfirm = StringUtils.hasText(req.getNewPasswordConfirm());
@@ -152,6 +157,7 @@ public class ChildMyPageService {
                 .childName(c.getChildName())
                 .childNickname(c.getChildNickname())
                 .childBirth(c.getChildBirth())
+                .timeLimitMinutes(c.getTimeLimitMinutes())
                 .build();
     }
 }

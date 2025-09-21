@@ -33,4 +33,9 @@ public class ChildUpdateRequestDto {
     /** 새 비밀번호 재입력 (선택) */
     @Size(min = 8, max = 16)
     private String newPasswordConfirm;
+
+    /** 제한 시간 (분 단위, 선택) */
+    @Min(0)
+    @Max(90)  // 예: 최대 1시간 반 제한
+    private Integer timeLimitMinutes;
 }

@@ -1,11 +1,13 @@
 package com.sinabro.backend.user.app.parent.controller;
 
+import com.sinabro.backend.config.JwtUtil;
 import com.sinabro.backend.user.app.parent.dto.*;
 import com.sinabro.backend.user.app.exception.DuplicateUserException;
 import com.sinabro.backend.user.app.parent.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -23,6 +25,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 // ──────────────────────────────────────────────────────────────────────────────
 
+@Slf4j
 @CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/users")
@@ -115,8 +118,10 @@ public class UserController {
 소셜 계정으로 부모 가입/업서트를 수행합니다.
 
 처리 규칙
-- 신규: `user_pw = NULL` 로 저장
-- 기존: 비밀번호는 변경/저장하지 않고 이메일/이름/전화/소셜정보만 갱신
+- 신규: 비밀번호 '필수' (추가정보 단계에서 받은 값)
+- 기존: 비밀번호 playload가 온 경우에만 처리 (+ 이메일/이름/전화/소셜정보 갱신)
+      - 이미 비밀번호가 있으면 409(충돌)
+      - 비밀번호가 없던(legacy) 계정이면 '처음 설정' 허용
 
 기본값
 - `role` = `parent`
@@ -124,11 +129,12 @@ public class UserController {
 """
     )
     @ApiResponses({
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "업서트 성공",
-                    content = @Content(schema = @Schema(implementation = UserRegisterDto.class))
-            )
+            @ApiResponse(responseCode = "200", description = "업서트 성공",
+                    content = @Content(schema = @Schema(implementation = LoginResponseDto.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청",
+                    content = @Content(schema = @Schema(implementation = String.class))),
+            @ApiResponse(responseCode = "409", description = "이미 비밀번호 설정된 계정",
+                    content = @Content(schema = @Schema(implementation = String.class)))
     })
     public ResponseEntity<?> socialRegister(
             @RequestBody(
@@ -138,18 +144,21 @@ public class UserController {
             )
             @Valid @org.springframework.web.bind.annotation.RequestBody SocialRegisterRequest req
     ) {
-        // 1) 비밀번호 필수 + 일치 검사(빈문자 포함)
-        if (!org.springframework.util.StringUtils.hasText(req.getNewPassword()) ||
-            !org.springframework.util.StringUtils.hasText(req.getConfirmPw()) ||
-            !req.getNewPassword().equals(req.getConfirmPw())) {
-            return ResponseEntity.badRequest().body("비밀번호와 비밀번호 확인이 일치하지 않습니다.");
+        // 1) 비밀번호 유효성: payload가 들어온 경우에만 일치 검사(부분 유효성)
+        if (org.springframework.util.StringUtils.hasText(req.getNewPassword()) ||
+                org.springframework.util.StringUtils.hasText(req.getConfirmPw())) {
+            if (!org.springframework.util.StringUtils.hasText(req.getNewPassword()) ||
+                    !org.springframework.util.StringUtils.hasText(req.getConfirmPw()) ||
+                    !req.getNewPassword().equals(req.getConfirmPw())) {
+                return ResponseEntity.badRequest().body("비밀번호와 비밀번호 확인이 일치하지 않습니다.");
+            }
         }
 
         // 2) 서비스 DTO로 매핑 (비밀번호는 userPw 로 전달 → 서비스에서 해시 저장)
         UserRegisterDto dto = new UserRegisterDto();
         dto.setUserId(req.getUserId());
         dto.setUserEmail(req.getUserEmail());
-        dto.setUserPw(req.getNewPassword());     // ⬅️ 여기!
+        dto.setUserPw(req.getNewPassword());     // ⬅️ 신규 필수 / 기존은 optional
         dto.setUserName(req.getUserName());
         dto.setUserPhoneNum(req.getUserPhoneNum());
         dto.setUserLanguage(req.getUserLanguage());
@@ -158,12 +167,34 @@ public class UserController {
         dto.setSocialId(req.getSocialId());
         dto.setSettings(req.getSettings());
 
-        var saved = userService.registerSocialUser(dto);
-        saved.setUserPw(null); // 안전상 응답에서 제거(서비스에서도 null 세팅하지만, 한 번 더)
-        return ResponseEntity.ok(saved);
+        try {
+            var saved = userService.registerSocialUser(dto);
+            saved.setUserPw(null); // 응답 안전 처리
+
+            // ✅ JWT 발급 + 함께 반환
+            String token = JwtUtil.generateToken(saved.getUserId());
+            LoginResponseDto response = LoginResponseDto.builder()
+                    .user(saved)
+                    .token(token)
+                    .build();
+
+            log.info("[소셜가입-컨트롤러] 업서트 완료 + JWT 발급 userId={}", saved.getUserId());
+            return ResponseEntity.ok(response);
+
+        } catch (IllegalStateException e) {
+            // 이미 비밀번호가 설정된 기존 계정에 비번 payload 보낸 케이스
+            log.warn("[소셜가입-컨트롤러] 충돌(이미 비번 설정) userId={} msg={}", req.getUserId(), e.getMessage());
+            return ResponseEntity.status(409).body(e.getMessage());
+
+        } catch (IllegalArgumentException e) {
+            // 신규인데 비번 누락 등
+            log.warn("[소셜가입-컨트롤러] 잘못된 요청 userId={} msg={}", req.getUserId(), e.getMessage());
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     // 로컬 로그인
+    // 기존 UserController.java 내 /login 엔드포인트 수정
     @PostMapping("/login")
     @Operation(
             summary = "로컬 로그인",
@@ -172,13 +203,14 @@ public class UserController {
 
 - 입력한 평문 비밀번호를 저장된 BCrypt 해시와 `matches()`로 비교합니다.
 - 소셜 계정은 `userPw`가 `NULL`이라 이 엔드포인트로 로그인 불가합니다.
+- ✅ 로그인 성공 시 JWT 토큰을 발급하여 응답에 포함합니다.
 """
     )
     @ApiResponses({
             @ApiResponse(
                     responseCode = "200",
                     description = "로그인 성공",
-                    content = @Content(schema = @Schema(implementation = UserRegisterDto.class))
+                    content = @Content(schema = @Schema(implementation = LoginResponseDto.class))
             ),
             @ApiResponse(
                     responseCode = "401",
@@ -194,11 +226,26 @@ public class UserController {
             )
             @org.springframework.web.bind.annotation.RequestBody UserRegisterDto dto
     ) {
+        log.info("[로그인-컨트롤러] 호출됨 userId={}", dto.getUserId());
+
         UserRegisterDto user = userService.login(dto.getUserId(), dto.getUserPw());
         if (user != null) {
+            log.info("[로그인-컨트롤러] 인증 성공 userId={}", user.getUserId());
             user.setUserPw(null); // 응답에서 비번 제거
-            return ResponseEntity.ok(user);
+
+            // ✅ JWT 발급
+            String token = com.sinabro.backend.config.JwtUtil.generateToken(user.getUserId());
+
+            // ✅ 사용자 정보 + 토큰을 묶어서 반환
+            LoginResponseDto response = LoginResponseDto.builder()
+                    .user(user)
+                    .token(token)
+                    .build();
+
+            log.info("[로그인-컨트롤러] 응답 완료 userId={}", user.getUserId());
+            return ResponseEntity.ok(response);
         } else {
+            log.warn("[로그인-컨트롤러] 로그인 실패 userId={}", dto.getUserId());
             return ResponseEntity.status(401).body("로그인 실패: 아이디 또는 비밀번호 불일치");
         }
     }

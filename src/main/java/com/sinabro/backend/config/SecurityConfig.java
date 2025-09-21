@@ -19,21 +19,91 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 public class SecurityConfig {
 
 
-    // =========================
+    // === 운영용 (JWT 인증) ===
     // 기존(모바일 등) 공개 체인
-    // - 현재처럼 permitAll 유지
+    // - 현재처럼 permitAll 유지 -> JWT 적용으로 수정함
+    // 일반 사용자용 체인 (JWT)
     // =========================
     @Bean
-    @Order(2) // ✅ admin 다음 우선순위
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    @Order(2)
+    public SecurityFilterChain apiFilterChain(HttpSecurity http,
+                                              JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
         http
-                .csrf(csrf -> csrf.disable())   // REST + 모바일 앱이라면 CSRF 비활성화
+                .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
-                        .anyRequest().permitAll() // 전체 허용(기존 동작 그대로)
-                );
+                        // === Users ===
+                        .requestMatchers(
+                                "/api/users/register",
+                                "/api/users/social-register",
+                                "/api/users/login",
+                                "/api/users/check-id"
+                        ).permitAll()
+
+                        // === Child ===
+                        .requestMatchers(
+                                "/api/child/login",
+                                "/api/child/info",
+                                "/api/child/logout"
+                        ).permitAll()
+
+                        // === Characters ===
+                        .requestMatchers(
+                                "/api/characters",
+                                "/api/characters/resolve",
+                                "/api/character/selection"
+                        ).permitAll()
+
+                        // === Notice ===
+                        .requestMatchers(
+                                "/api/app/notices",
+                                "/api/app/notices/**"
+                        ).permitAll()
+
+                        // === LevelTest ===
+                        .requestMatchers(
+                                "/api/level-test/**",
+                                "/api/parent-choice/**"
+                        ).permitAll()
+
+                        // === Swagger / Health ===
+                        .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/actuator/health"
+                        ).permitAll()
+
+                        // === Mypage (Parent, Child) ===
+                        .requestMatchers(
+                                "/api/app/mypage/**"
+                        ).authenticated()
+
+                        // === Inquiry (부모 전용) ===
+                        .requestMatchers(
+                                "/api/app/inquiries/**"
+                        ).authenticated()
+
+                        // === 나머지 ===
+                        .anyRequest().authenticated()
+                )
+
+                .addFilterBefore(jwtAuthenticationFilter,
+                        org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
+    // === 개발용 (permitAll) ===
+//    @Bean
+//    @Order(2) // ✅ admin 다음 우선순위
+//    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+//        http
+//                .csrf(csrf -> csrf.disable())   // REST + 모바일 앱이라면 CSRF 비활성화
+//                .cors(Customizer.withDefaults())
+//                .authorizeHttpRequests(auth -> auth
+//                        .anyRequest().permitAll() // 전체 허용(기존 동작 그대로)
+//                );
+//        return http.build();
+//    }
 
     // =========================
     // 공통: BCrypt 비밀번호 인코더

@@ -1,9 +1,11 @@
 package com.sinabro.backend.user.app.child.controller;
 
 import com.sinabro.backend.user.app.child.dto.ChildRegisterDto;
+import com.sinabro.backend.user.app.child.dto.ChildCheckDto;
 import com.sinabro.backend.user.entity.Child;
 import com.sinabro.backend.user.repository.ChildRepository;
 import com.sinabro.backend.user.app.child.service.ChildService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,6 +23,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 // ──────────────────────────────────────────────────────────────────────────────
 
+@Slf4j
 @CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/child")
@@ -73,7 +76,9 @@ public class ChildController {
             )
             @org.springframework.web.bind.annotation.RequestBody ChildRegisterDto dto
     ) {
+        log.info("[자녀-회원가입] 요청 수신 childId={} parentUserId={}", dto.getChildId(), dto.getUserId());
         ChildRegisterDto saved = childService.registerChild(dto);
+        log.info("[자녀-회원가입] 완료 childId={} timeLimitMinutes={}", saved.getChildId(), saved.getTimeLimitMinutes());
         return ResponseEntity.ok(saved);
     }
 
@@ -108,10 +113,13 @@ public class ChildController {
             )
             @org.springframework.web.bind.annotation.RequestBody ChildRegisterDto dto
     ) {
+        log.info("[자녀-로그인] 시도 childId={}", dto.getChildId());
         boolean success = childService.loginChild(dto.getChildId(), dto.getChildPw());
         if (success) {
+            log.info("[자녀-로그인] 성공 childId={}", dto.getChildId());
             return ResponseEntity.ok(dto.getChildId());
         } else {
+            log.warn("[자녀-로그인] 실패(아이디/비밀번호 불일치) childId={}", dto.getChildId());
             return ResponseEntity.status(401).body("아이디 또는 비밀번호가 일치하지 않습니다.");
         }
     }
@@ -164,6 +172,53 @@ public class ChildController {
         Map<String, Object> result = new HashMap<>(base);
         result.put("level", level == null ? "-" : level); // ← 프론트는 이 키로 읽으면 됨
 
+        log.info("[자녀-정보] 조회 완료 childId={} nickname={} characterId={} level={}",
+                childId, result.get("nickname"), result.get("characterId"), result.get("level"));
         return result;
+    }
+
+    /**
+     * 자녀 아이디 중복 확인
+     * - ?childId=xxx
+     * - available=true 이면 사용 가능
+     */
+    @GetMapping("/check-id")
+    @Operation(
+            summary = "자녀 아이디 중복 확인",
+            description = "쿼리스트링 ?childId=xxx 로 요청. available=true 이면 사용 가능."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "확인 성공",
+                    content = @Content(schema = @Schema(implementation = ChildCheckDto.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청",
+                    content = @Content(schema = @Schema(implementation = String.class)))
+    })
+    public ResponseEntity<?> checkChildId(@RequestParam("childId") String childId) {
+        log.info("[자녀-중복확인] 요청 childId={}", childId);
+        if (childId == null || childId.isBlank()) {
+            log.warn("[자녀-중복확인] 실패: childId 누락");
+            return ResponseEntity.badRequest().body("childId는 필수입니다.");
+        }
+        boolean available = !childRepository.existsById(childId);
+        log.info("[자녀-중복확인] 결과 childId={} available={}", childId, available);
+        return ResponseEntity.ok(
+                ChildCheckDto.builder()
+                        .field("childId")
+                        .value(childId)
+                        .available(available)
+                        .build()
+        );
+    }
+
+    /**
+     * 자녀 로그아웃
+     * - 서버는 상태 보관을 하지 않으므로 로그만 남기고 204 반환
+     * - 실제 토큰/세션 파기는 프론트에서 처리
+     */
+    @PostMapping("/logout")
+    @Operation(summary = "자녀 로그아웃", description = "서버 상태 없음. 로그만 남기고 204 반환.")
+    public ResponseEntity<Void> logout() {
+        log.info("[자녀-로그아웃] 요청 수신 → 204 반환");
+        return ResponseEntity.noContent().build();
     }
 }

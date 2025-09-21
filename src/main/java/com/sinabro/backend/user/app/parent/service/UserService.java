@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 @Slf4j
@@ -21,20 +22,20 @@ public class UserService {
     private final ParentSettingRepository parentSettingRepository; // ✅ 추가
     private final PasswordEncoder passwordEncoder;
 
-    // 🔽 나중에 켜서 사용할 화이트리스트(서비스 전역)
-    // TODO: 언어팩 추가/수정 시 이 리스트 업데이트
-//    private static final Set<String> SUPPORTED_LANG =
-//            Set.of("Korea", "English", "Vietnamese", "Chinese");
-//
-//    private static boolean isSupported(String lang) {
-//        return lang != null && SUPPORTED_LANG.contains(lang);
-//    }
+    // 🔽 언어 화이트리스트
+    private static final Set<String> SUPPORTED_LANG =
+            Set.of("Korea", "English", "Vietnamese", "Chinese", "Japanese", "Thai");
+
+    private static boolean isSupported(String lang) {
+        return lang != null && SUPPORTED_LANG.contains(lang);
+    }
+
 
     public UserService(UserRepository userRepository,
-                       ParentSettingRepository parentSettingRepository, // ✅ 추가
-                       PasswordEncoder passwordEncoder) {        // ⬅️ 주입
+                       ParentSettingRepository parentSettingRepository,
+                       PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
-        this.parentSettingRepository = parentSettingRepository;        // ✅ 추가
+        this.parentSettingRepository = parentSettingRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -56,9 +57,9 @@ public class UserService {
         if (dto.getRole() == null || dto.getRole().isBlank()) dto.setRole("parent");
         if (dto.getUserLanguage() == null || dto.getUserLanguage().isBlank()) dto.setUserLanguage("Korea");
         // TODO: 언어 값 검증 켜려면 주석 해제
-        // if (!isSupported(dto.getUserLanguage())) {
-        //     throw new IllegalArgumentException("지원하지 않는 언어입니다: " + dto.getUserLanguage());
-        // }
+        if (!isSupported(dto.getUserLanguage())) {
+             throw new IllegalArgumentException("지원하지 않는 언어입니다: " + dto.getUserLanguage());
+        }
 
         dto.setSocialType("local");
 
@@ -117,7 +118,7 @@ public class UserService {
         User saved;
 
         if (existingOpt.isPresent()) {
-            // ⬇️ 기존 계정 업데이트(비번은 건드리지 않음)
+            // ⬇️ 기존 계정 업데이트(일반 정보만 갱신)
             User u = existingOpt.get();
             log.info("[소셜가입-업서트] 기존 사용자 업데이트 userId={}", u.getUserId());
 
@@ -135,10 +136,23 @@ public class UserService {
             if (dto.getSocialType() != null)    u.setSocialType(dto.getSocialType());
             if (dto.getSocialId() != null)      u.setSocialId(dto.getSocialId());
             // u.setUserPw(...) 절대 X -> 정보 수정, 탈퇴 시 사용할 비밀번호 받기로 수정
-            // ⬇️ 새로 받은 비밀번호가 있으면 해시 저장
-            if (dto.getUserPw() != null && !dto.getUserPw().isBlank()) {
+            // ── 비번 payload가 온 경우에만 처리 ───────────────────────────────
+            //  - 이미 비번이 있는 계정이면 409 충돌
+            //  - 비번 없는 legacy 계정이면 "처음 설정" 허용
+            if (org.springframework.util.StringUtils.hasText(dto.getUserPw())) {
+                if (org.springframework.util.StringUtils.hasText(u.getUserPw())) {
+                    log.warn("[소셜가입-업서트] 기존 계정은 이미 비밀번호가 설정됨 userId={}", u.getUserId());
+                    throw new IllegalStateException("이미 비밀번호가 설정된 계정입니다.");
+                }
                 u.setUserPw(passwordEncoder.encode(dto.getUserPw()));
-                log.info("[소셜가입-업서트] 비밀번호 설정(기존 사용자) userId={}", u.getUserId());
+                log.info("[소셜가입-업서트] 첫 비밀번호 설정(legacy) userId={}", u.getUserId());
+            }
+
+            // ── 레거시(기존 비번 없음) + 이번 요청에도 비번 미제공 → 400(추가정보 화면으로 유도) ─────────
+            if (!org.springframework.util.StringUtils.hasText(u.getUserPw())
+                    && !org.springframework.util.StringUtils.hasText(dto.getUserPw())) {
+                log.warn("[소셜가입-업서트] 레거시 계정, 비밀번호 미제공 userId={}", u.getUserId());
+                throw new IllegalArgumentException("비밀번호가 필요합니다. (레거시 계정)");
             }
 
             saved = userRepository.save(u);
@@ -147,6 +161,12 @@ public class UserService {
         } else {
             log.info("[소셜가입-업서트] 신규 사용자 생성 userId={} socialType={}",
                     dto.getUserId(), dto.getSocialType());
+
+            // ── 신규 계정: 비밀번호 '필수' ─────────────────────────────────────────────
+            if (!org.springframework.util.StringUtils.hasText(dto.getUserPw())) {
+                log.warn("[소셜가입-업서트] 신규 가입 비밀번호 누락 userId={}", dto.getUserId());
+                throw new IllegalArgumentException("신규 소셜 가입은 비밀번호가 필요합니다.");
+            }
 
             //신규 가입
             User newUser = toEntitySocial(dto);
@@ -164,9 +184,9 @@ public class UserService {
                 log.info("[소셜가입-업서트] 언어 미지정 → Korea 기본값 적용 userId={}", dto.getUserId());
             }
             // TODO: 필요 시 언어 값 검증
-            // if (!isSupported(newUser.getUserLanguage())) {
-            //     throw new IllegalArgumentException("지원하지 않는 언어입니다: " + newUser.getUserLanguage());
-            // }
+             if (!isSupported(newUser.getUserLanguage())) {
+                 throw new IllegalArgumentException("지원하지 않는 언어입니다: " + newUser.getUserLanguage());
+             }
 
             // 역할 기본값 보정
             if (newUser.getRole() == null || newUser.getRole().isBlank()) {
