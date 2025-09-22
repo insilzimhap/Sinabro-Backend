@@ -38,6 +38,45 @@ public class CharacterController {
     private final CharacterSelectionRepository selectionRepository;  // 선택 저장
     private final ChildRepository childRepository;                   // child 존재 확인
 
+
+    // ─────────────────────────────────────────────────────────────────────
+    // [추가] 캐릭터 선택 여부 확인 (항상 JSON 반환)
+    // ─────────────────────────────────────────────────────────────────────
+    @GetMapping("/character/selection/check")
+    @Operation(
+            summary = "캐릭터 선택 여부 확인",
+            description = "쿼리스트링 ?childId=xxx 로 호출. 항상 JSON({selected:bool, level:int|null}) 반환."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "확인 성공")
+    })
+    public ResponseEntity<Map<String, Object>> checkSelection(
+            @RequestParam("childId") String childId
+    ) {
+        Map<String, Object> body = new HashMap<>();
+
+        // child 존재 여부 확인
+        Optional<Child> childOpt = childRepository.findById(childId);
+        if (childOpt.isEmpty()) {
+            // 존재하지 않아도 JSON으로 안전하게 반환
+            body.put("childId", childId);
+            body.put("selected", false);
+            body.put("level", null);
+            body.put("reason", "child not found");
+            return ResponseEntity.ok(body);
+        }
+
+        // 선택 여부 조회 (character_selection 테이블 기준)
+        boolean selected = selectionRepository.findByChildId(childId).isPresent();
+
+        body.put("childId", childId);
+        body.put("selected", selected);
+        body.put("level", childOpt.get().getChildLevel()); // 선택: 레벨도 함께 내려줌
+
+        return ResponseEntity.ok(body); // Map -> Jackson이 JSON으로 직렬화
+    }
+
+
     // === [카탈로그 - 조회] ===
 
     @GetMapping("/characters")
