@@ -78,12 +78,12 @@ public class SecurityConfig {
                         // === Mypage (Parent, Child) ===
                         .requestMatchers(
                                 "/api/app/mypage/**"
-                        ).authenticated()
+                        ).authenticated() //인증 필요
 
                         // === Inquiry (부모 전용) ===
                         .requestMatchers(
                                 "/api/app/inquiries/**"
-                        ).authenticated()
+                        ).authenticated() // 인증 필요
 
                         // === 나머지 ===
                         .anyRequest().authenticated()

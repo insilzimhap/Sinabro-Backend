@@ -180,7 +180,7 @@ public class ChildController {
     /**
      * 자녀 아이디 중복 확인
      * - ?childId=xxx
-     * - available=true 이면 사용 가능
+     * - available=true 이면 사용 가능 (auth)
      */
     @GetMapping("/check-id")
     @Operation(
@@ -213,7 +213,7 @@ public class ChildController {
     /**
      * 자녀 로그아웃
      * - 서버는 상태 보관을 하지 않으므로 로그만 남기고 204 반환
-     * - 실제 토큰/세션 파기는 프론트에서 처리
+     * - 실제 토큰/세션 파기는 프론트에서 처리 (permitall)
      */
     @PostMapping("/logout")
     @Operation(summary = "자녀 로그아웃", description = "서버 상태 없음. 로그만 남기고 204 반환.")
