@@ -52,7 +52,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/characters",
                                 "/api/characters/resolve",
-                                "/api/character/selection"
+                                "/api/character/selection",
+                                "/api/character/selection/check"
                         ).permitAll()
 
                         // === Notice ===
