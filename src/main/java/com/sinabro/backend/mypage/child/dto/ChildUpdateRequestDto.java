@@ -26,6 +26,9 @@ public class ChildUpdateRequestDto {
     )
     private String childBirth;
 
+    /** 만나이 (선택, 프론트에서 계산해서 보냄) */
+    private Integer childAge;
+
     /** 새 비밀번호 (선택) */
     @Size(min = 8, max = 16)
     private String newPassword;

@@ -16,4 +16,5 @@ public class ChildProfileResponseDto {
     private String childNickname;  // Child.childNickname (수정 가능)
     private String childBirth;      // "yyyy-MM-dd" (String) (수정 가능)
     private Integer timeLimitMinutes;  // Child.time_limit_minutes (수정 가능)
+    private Integer childAge; // 그냥 응답용
 }

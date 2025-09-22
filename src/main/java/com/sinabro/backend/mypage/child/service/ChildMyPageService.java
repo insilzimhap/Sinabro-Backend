@@ -53,6 +53,11 @@ public class ChildMyPageService {
             c.setChildBirth(req.getChildBirth());
         }
 
+        // 나이
+        if (req.getChildAge() != null) {
+            c.setChildAge(req.getChildAge());
+        }
+
         // 제한 시간 수정 (null 아니면 반영)
         if (req.getTimeLimitMinutes() != null) {
             c.setTimeLimitMinutes(req.getTimeLimitMinutes());
@@ -157,6 +162,7 @@ public class ChildMyPageService {
                 .childName(c.getChildName())
                 .childNickname(c.getChildNickname())
                 .childBirth(c.getChildBirth())
+                .childAge(c.getChildAge())
                 .timeLimitMinutes(c.getTimeLimitMinutes())
                 .build();
     }

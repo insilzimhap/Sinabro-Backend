@@ -1,10 +1,14 @@
 package com.sinabro.backend.lobby.controller;
 
 import com.sinabro.backend.lobby.service.ParentLobbyService;
-import com.sinabro.backend.user.entity.Child;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.server.ResponseStatusException;
+import static org.springframework.http.HttpStatus.UNAUTHORIZED;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,84 +32,84 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
         name = "Parent Lobby",
         description = "부모 로비 화면 API (프로필, 자녀 목록 조회)"
 )
+@SecurityRequirement(name = "bearerAuth") // 🔐 스웨거: Authorization 헤더(bearer) 필요 표기
+@Slf4j
 public class ParentLobbyController {
 
     private final ParentLobbyService parentLobbyService;
 
-    // ✅ 부모 이름 조회
+    /**
+     * ✅ JWT 주체에서 userId를 읽어 부모 프로필(이름) 조회
+     * - 더 이상 쿼리 파라미터로 userId를 받지 않습니다.
+     * - JWT 클레임 'userId'가 없으면 subject(sub)를 폴백으로 사용합니다.
+     */
     @GetMapping("/users/profile")
     @Operation(
-            summary = "부모 프로필 조회",
+            summary = "부모 프로필 조회 (JWT 주체 기반)",
             description = """
-부모의 userId를 기준으로 부모 이름을 조회.
-DB: `user.user_name` 값을 반환.
+JWT의 주체에서 userId를 읽어 부모 이름을 반환합니다.
+- 우선순위: claim.userId → sub(주체)
+- DB: user.user_name 컬럼 값을 반환
 """
     )
     @ApiResponses({
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "부모 이름 조회 성공",
-                    content = @Content(schema = @Schema(implementation = ParentProfileResponse.class))
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "존재하지 않는 userId",
-                    content = @Content(schema = @Schema(implementation = String.class))
-            )
+            @ApiResponse(responseCode = "200", description = "부모 이름 조회 성공",
+                    content = @Content(schema = @Schema(implementation = ParentProfileResponse.class))),
+            @ApiResponse(responseCode = "401", description = "인증 실패 또는 JWT에서 userId를 확인할 수 없음",
+                    content = @Content(schema = @Schema(implementation = String.class)))
     })
     public ResponseEntity<ParentProfileResponse> getParentProfile(
-            @Parameter(
-                    description = "부모 ID (user.user_id)",
-                    required = true,
-                    example = "parent123"
-            )
-            @RequestParam("userId") String userId
+            @AuthenticationPrincipal String userId   // ✅ 필터가 넣은 userId 그대로 주입
     ) {
+        if (userId == null || userId.isBlank()) {
+            throw new ResponseStatusException(UNAUTHORIZED, "인증 정보가 없습니다.");
+        }
+        log.info("[부모-프로필] 요청 수신 userId={}", userId);
         String name = parentLobbyService.getParentName(userId);
+        log.info("[부모-프로필] 조회 완료 userId={} userName={}", userId, name);
         return ResponseEntity.ok(new ParentProfileResponse(name));
     }
 
-    // ✅ 부모 기준 자녀 목록 조회
+    /**
+     * ✅ JWT 주체에서 userId를 읽어 자녀 목록 조회
+     * - 더 이상 쿼리 파라미터로 userId를 받지 않습니다.
+     * - 해당 부모(userId)에 연결된 모든 자녀를 반환합니다.
+     */
     @GetMapping("/children")
     @Operation(
-            summary = "부모 자녀 목록 조회",
+            summary = "부모 자녀 목록 조회 (JWT 주체 기반)",
             description = """
-부모 userId를 기준으로 연결된 모든 자녀 정보를 조회.
-DB: `child` 테이블에서 childId, childName, childNickname, childAge 반환.
+JWT의 주체에서 userId를 읽어, 해당 부모에 연결된 자녀 목록을 반환합니다.
+DB: child 테이블에서 childId, childName, childNickname, childAge 반환
 """
     )
     @ApiResponses({
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "자녀 목록 조회 성공",
-                    content = @Content(schema = @Schema(implementation = ChildSummaryResponse.class))
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "존재하지 않는 userId",
-                    content = @Content(schema = @Schema(implementation = String.class))
-            )
+            @ApiResponse(responseCode = "200", description = "자녀 목록 조회 성공",
+                    content = @Content(schema = @Schema(implementation = ChildSummaryResponse.class))),
+            @ApiResponse(responseCode = "401", description = "인증 실패 또는 JWT에서 userId를 확인할 수 없음",
+                    content = @Content(schema = @Schema(implementation = String.class)))
     })
     public ResponseEntity<List<ChildSummaryResponse>> getChildren(
-            @Parameter(
-                    description = "부모 ID (user.user_id)",
-                    required = true,
-                    example = "parent123"
-            )
-            @RequestParam("userId") String userId
+            @AuthenticationPrincipal String userId   // ✅ 동일
     ) {
-        List<Child> list = parentLobbyService.getChildren(userId);
-        return ResponseEntity.ok(
-                list.stream().map(c ->
-                        new ChildSummaryResponse(
-                                c.getChildId(),
-                                c.getChildName(),
-                                c.getChildNickname(),
-                                c.getChildAge()
-                        )
-                ).toList()
-        );
+        if (userId == null || userId.isBlank()) {
+            throw new ResponseStatusException(UNAUTHORIZED, "인증 정보가 없습니다.");
+        }
+        log.info("[부모-자녀목록] 요청 수신 userId={}", userId);
+        var list = parentLobbyService.getChildren(userId);
+        var body = list.stream().map(c ->
+                new ChildSummaryResponse(
+                        c.getChildId(),
+                        c.getChildName(),
+                        c.getChildNickname(),
+                        c.getChildAge()
+                )
+        ).toList();
+        log.info("[부모-자녀목록] 조회 완료 userId={} count={}", userId, body.size());
+        return ResponseEntity.ok(body);
     }
+
+    // ───────────────────────── 내부 DTO ─────────────────────────
 
     @Data
     @AllArgsConstructor
@@ -129,4 +133,5 @@ DB: `child` 테이블에서 childId, childName, childNickname, childAge 반환.
         @Schema(description = "자녀 나이", example = "6")
         private Integer childAge;
     }
+
 }

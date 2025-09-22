@@ -29,6 +29,7 @@ public class SecurityConfig {
     public SecurityFilterChain apiFilterChain(HttpSecurity http,
                                               JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
         http
+                .securityMatcher("/api/**")   // ✅ 반드시 /api/** 로 범위 제한
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
@@ -145,6 +146,25 @@ public class SecurityConfig {
                 .sessionManagement(sess -> sess.sessionFixation().migrateSession()); // 세션 하이재킹 방지
         return http.build();
     }
+
+
+
+    // =========================
+    // 정적 리소스 전용 체인 (/web/**, /css/**, /js/**, /images/**)
+    // - HTML, CSS, JS, 이미지 파일은 모두 공개
+    // - 관리자/앱 API와 분리
+    // - 모바일 앱 동작에는 영향 없음
+    // =========================
+    @Bean
+    @Order(3) // ✅ 가장 마지막 우선순위, 나머지 체인에 안 걸리면 여기서 처리
+    public SecurityFilterChain webFilterChain(HttpSecurity http) throws Exception {
+        http
+                .securityMatcher("/web/**", "/css/**", "/js/**", "/images/**")
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .csrf(csrf -> csrf.disable());
+        return http.build();
+    }
+
 
     // =========================
     // 관리자 인증에 사용할 AuthenticationManager

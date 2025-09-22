@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+
 import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -42,14 +43,36 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     // ✅ 필터를 적용하지 않을 경로(permitAll 대상)
     //    필요 시 여기에 추가하면 된다.
     private static final String[] WHITELIST = {
-            "/api/users/login",
+            // --- User ---
             "/api/users/register",
             "/api/users/social-register",
-            // 문서/헬스체크 등
+            "/api/users/login",
+            "/api/users/check-id",
+
+            // --- Child ---
+            "/api/child/login",
+            "/api/child/info",
+            "/api/child/logout",
+            // ❌ /api/child/register 는 인증 필요 (whitelist 제외)
+
+            // --- Character ---
+            "/api/characters",               // 목록
+            "/api/characters/resolve",       // 이름→ID 조회
+            "/api/character/selection",      // 최초 선택(초기 플로우)
+
+            // --- Notice ---
+            "/api/app/notices",
+            "/api/app/notices/**",
+
+            // --- Level test & Parent choice (초기 플로우) ---
+            "/api/level-test/**",
+            "/api/parent-choice/**",
+
+            // --- Docs / health ---
             "/v3/api-docs/**",
             "/swagger-ui/**",
             "/swagger-ui.html",
-            "/actuator/health"
+            "/actuator/health",
     };
 
     public JwtAuthenticationFilter(UserRepository userRepository) {
@@ -60,13 +83,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String uri = request.getRequestURI();
+
+        // 1) 정적 리소스는 무조건 스킵
+        if (uri.startsWith("/web/") || uri.startsWith("/css/") ||
+                uri.startsWith("/js/") || uri.startsWith("/images/") ||
+                uri.equals("/favicon.ico") || uri.startsWith("/.well-known/")) {
+            return true;
+        }
+
+        // 2) 화이트리스트 매칭
         for (String pattern : WHITELIST) {
             if (matcher.match(pattern, uri)) {
                 return true;
             }
         }
+
         return false;
     }
+
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
