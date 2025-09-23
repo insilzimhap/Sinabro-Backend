@@ -12,8 +12,8 @@ import com.sinabro.backend.record.repository.ListeningRecordRepository;
 import com.sinabro.backend.record.repository.WritingRecordRepository;
 import com.sinabro.backend.progress.entity.Progress;
 import com.sinabro.backend.progress.repository.ProgressRepository;
-import com.sinabro.backend.user.child.entity.Child;
-import com.sinabro.backend.user.child.repository.ChildRepository;
+import com.sinabro.backend.user.entity.Child;
+import com.sinabro.backend.user.repository.ChildRepository;
 
 // ⬇⬇⬇ DTO 임포트는 'StudyDtos'의 중첩 타입을 임포트!
 import com.sinabro.backend.study.dto.StudyDtos.*;

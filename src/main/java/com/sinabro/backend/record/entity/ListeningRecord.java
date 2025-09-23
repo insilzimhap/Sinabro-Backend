@@ -1,7 +1,7 @@
 package com.sinabro.backend.record.entity;
 
 import com.sinabro.backend.study.entity.StudyListeningContent;
-import com.sinabro.backend.user.child.entity.Child;
+import com.sinabro.backend.user.entity.Child;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.OnDelete;
