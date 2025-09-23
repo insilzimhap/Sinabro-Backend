@@ -1,9 +1,9 @@
 package com.sinabro.backend.lobby.service;
 
-import com.sinabro.backend.user.child.entity.Child;
-import com.sinabro.backend.user.child.repository.ChildRepository;
-import com.sinabro.backend.user.parent.entity.User;
-import com.sinabro.backend.user.parent.repository.UserRepository;
+import com.sinabro.backend.user.entity.Child;
+import com.sinabro.backend.user.repository.ChildRepository;
+import com.sinabro.backend.user.entity.User;
+import com.sinabro.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

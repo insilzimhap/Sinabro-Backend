@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>문의사항 관리 - 시나브로</title>
+  <link rel="stylesheet" href="/web/css/header.css" />
+  <link rel="stylesheet" href="/web/css/board/board_qna_answer.css" />
+  <!-- 공통 fetch 유틸 -->
+  <script src="/web/js/common.js"></script>
+</head>
+<body>
+  <!-- 공통 헤더 -->
+  <div id="header-container"></div>
+
+  <main>
+    <h2>문의사항 관리</h2>
+    <div class="info">
+      <p><strong>제목:</strong> <span id="q-title">-</span></p>
+      <p><strong>작성자:</strong> <span id="q-writerName">-</span></p>
+      <p><strong>아이디:</strong> <span id="q-writerId">-</span></p>
+      <p><strong>작성일:</strong> <span id="q-created">-</span></p>
+      <p><strong>문의 내용:</strong></p>
+      <div class="scroll-box" id="q-content">-</div>
+    </div>
+
+    <label for="reply">답변 작성</label>
+    <textarea id="reply" placeholder="답변 내용을 입력하세요."></textarea>
+
+    <div class="button-group">
+      <button class="save-btn" onclick="saveReply()">저장하기</button>
+      <button class="cancel-btn" onclick="location.href='board_qna.html'">취소하기</button>
+    </div>
+  </main>
+
+  <script>
+    // 공통 헤더
+    fetch("/web/header.html").then(r=>r.text()).then(h=>{
+      document.getElementById("header-container").innerHTML = h;
+      if (typeof checkLogin === "function") checkLogin();
+    });
+
+    const params = new URLSearchParams(location.search);
+    const inquiryId = params.get('id');
+    if (!inquiryId) {
+      alert('잘못된 접근입니다.');
+      location.href = 'board_qna.html';
+    }
+
+    async function loadDetail(){
+      const res = await apiFetch(`/api/admin/inquiries/${encodeURIComponent(inquiryId)}`);
+      if (!res || !res.ok){
+        alert('상세 정보를 불러오지 못했습니다.');
+        return;
+      }
+      const d = await res.json(); // AdminInquiryDetailDto
+
+      document.getElementById('q-title').innerText = d.title ?? '-';
+      document.getElementById('q-writerName').innerText = d.writerName ?? '-';
+      document.getElementById('q-writerId').innerText = d.writerId ?? '-';
+      document.getElementById('q-created').innerText = d.createdAt ? d.createdAt.split('T')[0] : '-';
+      document.getElementById('q-content').innerText = d.content ?? '-';
+
+      // ✅ 답변이 있으면 textarea에 채움, 없으면 공란
+      document.getElementById('reply').value = d.replyContent ?? '';
+    }
+
+    async function saveReply(){
+      const content = document.getElementById('reply').value.trim();
+      if (!content){
+        alert('답변을 입력해주세요!');
+        return;
+      }
+
+      const body = { content, adminUserId: "insilAdmin" };
+
+      const res = await apiFetch(`/api/admin/inquiries/${encodeURIComponent(inquiryId)}/reply`, {
+        method: 'PUT',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      if (!res) return; // 공통에서 로그인 처리됐을 수 있음
+
+      if (res.ok){
+        alert('답변이 저장되었습니다!');
+        location.href = 'board_qna.html';
+      } else if (res.status === 404){
+        alert('대상 문의 또는 관리자 계정을 찾을 수 없습니다.');
+      } else if (res.status === 400){
+        const msg = await res.text().catch(()=> '');
+        alert(msg || '요청 값이 올바르지 않습니다.');
+      } else {
+        alert('저장 중 오류가 발생했습니다.');
+      }
+    }
+
+    loadDetail();
+  </script>
+</body>
+</html>
