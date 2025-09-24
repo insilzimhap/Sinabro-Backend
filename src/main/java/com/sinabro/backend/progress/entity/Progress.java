@@ -1,6 +1,6 @@
 package com.sinabro.backend.progress.entity;
 
-import com.sinabro.backend.user.child.entity.Child;
+import com.sinabro.backend.user.entity.Child;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;

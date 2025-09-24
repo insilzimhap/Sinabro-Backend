@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>공지사항 관리 - 시나브로</title>
+  <link rel="stylesheet" href="/web/css/header.css" />
+  <link rel="stylesheet" href="/web/css/board/board_notice.css" />
+  <!-- 공통 fetch 유틸 -->
+  <script src="/web/js/common.js"></script>
+</head>
+
+<body>
+  <div id="header-container"></div>
+
+  <main>
+    <div class="sub-nav">
+      <a href="board_notice.html" class="active">공지사항 게시판</a>
+      <a href="board_qna.html">문의사항 게시판</a>
+    </div>
+
+    <div class="search-bar">
+      <!-- 키워드 (제목 검색용 -->
+      <input type="text" id="searchInput" placeholder="제목 키워드를 입력하세요" />
+      <!-- 검색 필드 -->
+      <select id="field" title="검색 기준">
+        <option value="">전체</option>
+        <option value="title">제목</option>
+      </select>
+
+      <!-- 유형 -->
+      <select id="noticeType" title="유형">
+        <option value="">유형: 전체</option>
+        <option value="업데이트">업데이트</option>
+        <option value="이벤트">이벤트</option>
+        <option value="점검">점검</option>
+        <option value="긴급">긴급</option>
+        <option value="기타">기타</option>
+        <!-- 필요 시 유형 추가 -->
+      </select>
+
+      <!-- 작성일(단일 날짜) -->
+      <input type="date" id="date" />
+
+      <button id="searchBtn">검색</button>
+    </div>
+
+    <div style="text-align: right; margin-bottom: 10px;">
+      <button onclick="location.href='board_notice_add.html'" class="manage-btn">공지사항 추가</button>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>No</th>
+          <th>제목</th>
+          <th>작성일</th>
+          <th>유형</th>
+          <th>액션</th>
+        </tr>
+      </thead>
+      <tbody id="noticeTableBody">
+        <!-- JS에서 불러온 데이터가 여기에 들어감 -->
+      </tbody>
+    </table>
+  </main>
+
+  <script>
+    // 헤더 + 로그인 체크
+    async function mountHeader() {
+      const html = await fetch("/web/header.html").then(r => r.text());
+      document.getElementById("header-container").innerHTML = html;
+      if (typeof checkLogin === "function") checkLogin(); // 401이면 내부 정책대로 처리
+    }
+
+    // 안전 이스케이프
+    const escapeHtml = (s) => String(s ?? "")
+            .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+            .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+
+    // 테이블 렌더
+    function renderTable(items) {
+      const tbody = document.getElementById("noticeTableBody");
+      tbody.innerHTML = "";
+
+      // 최신순 정렬(백엔드가 정렬 안해주면 클라에서 보정)
+      items.sort((a,b) => (b.id ?? 0) - (a.id ?? 0));
+
+      if (items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#777;">검색 결과가 없습니다.</td></tr>`;
+        return;
+      }
+
+      items.forEach((n, idx) => {
+        const created = n.createdDate ? n.createdDate.split("T")[0] : "";
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+        <td>${idx + 1}</td>
+        <td>${escapeHtml(n.title)}</td>
+        <td>${created}</td>
+        <td>${escapeHtml(n.noticeType ?? "")}</td>
+        <td>
+          <button class="manage-btn"
+            onclick="location.href='board_index_no_update.html?id=${encodeURIComponent(n.id)}'">관리</button>
+        </td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // 목록/검색 호출 (이 함수만 교체)
+    async function loadList() {
+      const q    = (document.getElementById("searchInput")?.value || "").trim();
+      const type = document.getElementById("noticeType")?.value || "";
+      const date = document.getElementById("date")?.value || "";
+      const field = document.getElementById("field")?.value || "all"; // ""면 all로
+
+      const hasFilter = !!(q || type || date || field !== "all");        // 하나라도 있으면 true
+      let url;
+
+      if (hasFilter) {
+        const params = new URLSearchParams();
+        if (q)    params.set("q", q);
+        if (type) params.set("noticeType", type);
+        if (date) params.set("date", date);
+        if (field) params.set("field", field); // all | title | type
+        url = `/api/admin/notices/search?${params.toString()}`;
+      } else {
+        // 초기 로딩/빈 검색 → 전체 목록 엔드포인트
+        url = `/api/admin/notices`;
+      }
+
+      try {
+        const res = await apiFetch(url);
+        if (!res) return;                  // (로그인 리다이렉트 등)
+        if (!res.ok) throw new Error(res.status);
+        renderTable(await res.json());
+      } catch (e) {
+        console.warn("검색/목록 호출 실패:", e);
+
+        // 폴백: 전체 목록 재시도 (search 400 등)
+        try {
+          const res2 = await apiFetch(`/api/admin/notices`);
+          if (!res2) return;
+          if (!res2.ok) throw new Error(res2.status);
+          renderTable(await res2.json());
+        } catch (e2) {
+          console.error(e2);
+          alert("공지사항 목록을 불러오는 중 오류가 발생했습니다.");
+        }
+      }
+    }
+
+    // ✅ DOM 준비 후에만 바인딩/초기 호출
+    document.addEventListener("DOMContentLoaded", async () => {
+      await mountHeader();
+
+      const input = document.getElementById("searchInput");
+      const type  = document.getElementById("noticeType");
+      const date  = document.getElementById("date");
+      const btn   = document.getElementById("searchBtn");
+
+      if (input) input.addEventListener("keydown", (e) => { if (e.key === "Enter") loadList(); });
+      if (type)  type.addEventListener("change", loadList);
+      if (date)  date.addEventListener("change", loadList);
+      if (btn)   btn.addEventListener("click", loadList);
+
+      loadList();
+    });
+  </script>
+
+  </script>
+</body>
+</html>

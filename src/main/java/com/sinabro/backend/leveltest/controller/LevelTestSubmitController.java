@@ -1,6 +1,6 @@
 package com.sinabro.backend.leveltest.controller;
 
-import com.sinabro.backend.user.child.entity.Child;
+import com.sinabro.backend.user.entity.Child;
 import com.sinabro.backend.leveltest.dto.LevelTestChoiceDTO;
 import com.sinabro.backend.leveltest.entity.LevelTestChoice;
 import com.sinabro.backend.leveltest.entity.LevelTestOption;
@@ -8,7 +8,7 @@ import com.sinabro.backend.leveltest.entity.LevelTestQuestion;
 import com.sinabro.backend.leveltest.repository.LevelTestChoiceRepository;
 import com.sinabro.backend.leveltest.repository.LevelTestOptionRepository;
 import com.sinabro.backend.leveltest.repository.LevelTestQuestionRepository;
-import com.sinabro.backend.user.child.repository.ChildRepository;
+import com.sinabro.backend.user.repository.ChildRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

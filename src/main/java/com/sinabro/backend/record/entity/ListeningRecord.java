@@ -1,52 +1,59 @@
 package com.sinabro.backend.record.entity;
 
-import com.sinabro.backend.stage.entity.LearningFruit;
-import com.sinabro.backend.user.child.entity.Child;
+import com.sinabro.backend.study.entity.StudyListeningContent;
+import com.sinabro.backend.user.entity.Child;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
-import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Entity
 @Table(name = "listening_record")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor @Builder
-@Schema(description = "듣기 학습 기록 엔티티")
 public class ListeningRecord {
 
+    // PK
     @Id
     @Column(name = "ls_record_id", length = 255, nullable = false)
-    @Schema(description = "듣기 학습 기록 ID", example = "LR1001")
     private String lsRecordId;
 
-    @Column(name = "result_type", nullable = false, length = 50)
-    @Schema(description = "결과 타입", example = "듣기 학습")
+    // DEFAULT '듣기 학습'
+    @Column(
+            name = "result_type",
+            length = 50,
+            nullable = false,
+            columnDefinition = "VARCHAR(50) DEFAULT '듣기 학습'"
+    )
     private String resultType;
 
-    @Column(name = "ls_learning_date")
-    @Schema(description = "학습 일자", example = "2025-09-16T12:34:56")
+    // 학습일자 (DEFAULT CURRENT_TIMESTAMP)
+    @Column(
+            name = "ls_learning_date",
+            columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+    )
     private LocalDateTime lsLearningDate;
 
-    @Column(name = "time_spent_secs")
-    @Schema(description = "소요 시간(초)", example = "120")
-    private Integer timeSpentSecs;
+    // 소요 시간 (분) – TIME 사용
+    @Column(name = "ls_time_spent")
+    private LocalTime lsTimeSpent;
 
-    @Column(name = "ls_completed", nullable = false)
-    @Schema(description = "완료 여부", example = "true")
-    private Boolean lsCompleted;
+    // 완료 여부 (DEFAULT false)
+    @Column(name = "ls_completed", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 0")
+    private boolean lsCompleted;
 
+    // FK → StudyListeningContent
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "ls_content_id", referencedColumnName = "ls_content_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private StudyListeningContent listeningContent;
+
+    // FK → Child
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "ls_child_id", referencedColumnName = "child_id", nullable = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @Schema(description = "자녀 ID")
     private Child child;
-
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "fruit_id", referencedColumnName = "fruit_id", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    @Schema(description = "대상 열매 ID")
-    private LearningFruit fruit;
 }

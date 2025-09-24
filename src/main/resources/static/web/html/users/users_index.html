@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title> 시나브로 </title>
+  
+  <link rel="stylesheet" href="/web/css/header.css" />
+  <link rel="stylesheet" href="/web/css/users/users_index.css" />
+  <!-- 인증 가드 공용 fetch -->
+  <script src="/web/js/common.js"></script>
+</head>
+<body>
+    <div id="header-container"></div>
+
+  <main>
+    <!-- 🔎 검색 UI (백엔드 연동은 추후) -->
+    <div class="member-search-container">
+      <h3>회원 검색</h3>
+      <div class="search-bar">
+        <select id="searchField">
+          <option value="all">전체</option>
+          <option value="parentName">부모 이름</option>
+          <option value="childName">자식 이름</option>
+          <option value="email">이메일</option>
+        </select>
+
+
+        <input id="searchInput" type="text" placeholder="검색어를 입력하세요">
+
+        <!-- 작성일(단일 날짜) -->
+        <input type="date" id="date" />
+
+        <button id="searchBtn" onclick="searchMembers()">검색</button>
+      </div>
+
+      <!-- 목록 영역 -->
+      <div id="memberList" class="member-list">
+<!--        <div class="member-item">-->
+<!--          <div class="member-info">-->
+<!--            <strong>김와와</strong> (mwa2day) mwa2day@gmail.com-->
+<!--          </div>-->
+<!--          <button onclick="location.href='users_index_parent.html'">상세</button>-->
+<!--        </div>-->
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    // 공통 헤더 로드 + 로그인 상태 표시
+    fetch("/web/header.html")
+            .then(res => res.text())
+            .then(html => {
+              document.getElementById("header-container").innerHTML = html;
+              // header.html 안에서 checkLogin() 정의되어 있음
+              if (typeof checkLogin === "function") checkLogin();
+            });
+
+    // ✅ 회원 목록 로드
+    async function loadUsers() {
+      try {
+        const res = await apiFetch("/api/admin/users"); // 세션 없으면 apiFetch가 로그인으로 보냄
+        if (!res) return; // apiFetch가 이미 처리(리다이렉트)했음
+        if (!res.ok) throw new Error("목록 호출 실패");
+
+        const data = await res.json();
+        renderUsers(data);
+      } catch (e) {
+        console.error(e);
+        alert("회원 목록을 불러오는 중 오류가 발생했습니다.");
+      }
+    }
+
+    // ✅ 목록 렌더링: "이름 (아이디) 이메일"
+    function renderUsers(users) {
+      const listEl = document.getElementById("memberList");
+      listEl.innerHTML = "";
+
+      if (!users || users.length === 0) {
+        listEl.innerHTML = `<div class="member-empty">표시할 회원이 없습니다.</div>`;
+        return;
+      }
+
+      users.forEach(u => {
+        const item = document.createElement("div");
+        item.className = "member-item";
+
+        item.innerHTML = `
+          <div class="member-info">
+            <strong>${escapeHtml(u.name ?? "")}</strong>
+            (${escapeHtml(u.id ?? "")})
+            ${escapeHtml(u.email ?? "")}
+          </div>
+          <button type="button" class="detail-btn">상세</button>
+        `;
+
+        item.querySelector(".detail-btn").addEventListener("click", () => {
+          // 상세 페이지로 userId 전달
+          window.location.href = "/web/html/users/users_index_parent.html?userId=" + encodeURIComponent(u.id);
+        });
+
+        listEl.appendChild(item);
+      });
+    }
+
+    // 🔐 간단한 XSS 방지용 이스케이프
+    function escapeHtml(str) {
+      return String(str)
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;")
+              .replace(/"/g, "&quot;")
+              .replace(/'/g, "&#039;");
+    }
+
+    // 🔎 서버 검색
+    async function searchMembers() {
+      const field = document.getElementById("searchField").value;   // all | parentName | childName | email
+      const q = document.getElementById("searchInput").value.trim();
+      const date = document.getElementById("date").value;          // yyyy-MM-dd (옵션)
+
+      // 아무 것도 없으면 전체 목록
+      if (!q && !date) {
+        return loadUsers();
+      }
+
+      const params = new URLSearchParams();
+      if (q) params.set("q", q);
+      if (field) params.set("field", field);
+
+      // 단일 날짜를 startDate & endDate로 둘 다 전송 (그 날짜 하루만 필터)
+      if (date) {
+        params.set("startDate", date);
+        params.set("endDate", date);
+      }
+
+      try {
+        const res = await apiFetch(`/api/admin/users/search?${params.toString()}`);
+        if (!res) return;
+        if (!res.ok) throw new Error(`검색 실패: ${res.status}`);
+        renderUsers(await res.json());
+      } catch (e) {
+        console.warn(e);
+        // 폴백: 전체 목록
+        loadUsers();
+      }
+    }
+
+    // 이벤트 바인딩 (버튼/엔터/날짜/셀렉트 변경)
+    document.getElementById("searchBtn").addEventListener("click", searchMembers);
+    document.getElementById("searchInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") searchMembers();
+    });
+    document.getElementById("searchField").addEventListener("change", searchMembers);
+    document.getElementById("date").addEventListener("change", searchMembers);
+
+    // 페이지 첫 로드 시 목록 가져오기
+    window.addEventListener("DOMContentLoaded", loadUsers);
+  </script>
+</body>
+</html>

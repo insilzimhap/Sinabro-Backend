@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>수정하기 - 시나브로</title>
+  
+  <link rel="stylesheet" href="/web/css/header.css" />
+  <link rel="stylesheet" href="/web/css/users/users_index_update.css" />
+  <!-- 공통 fetch 유틸 -->
+  <script src="/web/js/common.js"></script>
+</head>
+<body>
+  <!-- 공통 헤더 삽입 -->
+  <div id="header-container"></div>
+
+  <div class="edit-container">
+    <h2>회원 정보 수정</h2>
+
+    <!-- ✅ 폼 추가 -->
+    <form id="editForm" novalidate>
+      <table>
+        <tr>
+          <td class="label">이름</td>
+          <td>
+            <input id="name" type="text" required />
+            <div class="hint" data-for="name">이름을 입력해주세요.</div>
+          </td>
+        </tr>
+        <tr>
+          <td class="label">아이디</td>
+          <td>
+            <input id="userId" type="text" disabled />
+            <div class="hint static">아이디는 수정할 수 없습니다.</div>
+          </td>
+        </tr>
+        <tr>
+          <td class="label">이메일</td>
+          <td>
+            <input id="email" type="email" required />
+            <div class="hint" data-for="email">정확한 이메일 형식만 허용됩니다.</div>
+          </td>
+        </tr>
+        <tr>
+          <td class="label">전화번호</td>
+          <td>
+            <!-- pattern 은 HTML 속성에서 \\d 로 -->
+            <input id="phone" type="text" required placeholder="010-0000-0000" pattern="010-\\d{4}-\\d{4}" />
+            <div class="hint" data-for="phone">형식: 010-0000-0000</div>
+          </td>
+        </tr>
+      </table>
+
+      <div class="button-row">
+        <button type="submit" class="btn">저장하기</button>
+        <button type="button" class="btn cancel" onclick="goBack()">취소하기</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    // 공통 헤더
+    fetch("/web/header.html")
+            .then(res => res.text())
+            .then(html => {
+              document.getElementById("header-container").innerHTML = html;
+              if (typeof checkLogin === "function") checkLogin();
+            });
+
+    const qs = new URLSearchParams(location.search);
+    const userId = qs.get("userId");
+    if (!userId) {
+      alert("잘못된 접근입니다.");
+      location.replace("/web/html/users/users_index.html");
+    }
+
+    function isValidEmail(v) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+    }
+    function isValidPhone(v) {
+      return /^010-\d{4}-\d{4}$/.test(v);
+    }
+
+    async function loadInitial() {
+      const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}`);
+      if (!res || !res.ok) return;
+      const data = await res.json();
+
+      // ✅ 처음 진입 시 input 채움
+      document.getElementById("name").value   = data.parent.name ?? "";
+      document.getElementById("userId").value = data.parent.id ?? "";
+      document.getElementById("email").value  = data.parent.email ?? "";
+      document.getElementById("phone").value  = data.parent.phoneNumber ?? "";
+    }
+
+    document.getElementById("editForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const name  = document.getElementById("name").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const phone = document.getElementById("phone").value.trim();
+
+      if (!isValidEmail(email)) {
+        alert("이메일 형식이 올바르지 않습니다.");
+        document.getElementById("email").focus();
+        return;
+      }
+      if (!isValidPhone(phone)) {
+        alert("전화번호 형식이 올바르지 않습니다. 예) 010-1234-5678");
+        document.getElementById("phone").focus();
+        return;
+      }
+
+      const body = { name, email, phoneNumber: phone };
+
+      const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+
+      if (!res) return;
+      if (res.status === 204 || res.status === 200) {
+        alert("변경사항이 저장되었습니다.");
+        location.href = `/web/html/users/users_index_parent.html?userId=${encodeURIComponent(userId)}`;
+      } else if (res.status === 400) {
+        const msg = await res.text().catch(() => "");
+        alert(msg || "검증 오류가 발생했습니다.");
+      } else if (res.status === 404) {
+        alert("대상 사용자를 찾을 수 없습니다.");
+      } else {
+        alert("저장 중 오류가 발생했습니다.");
+      }
+    });
+
+    function goBack() {
+      location.href = `/web/html/users/users_index_parent.html?userId=${encodeURIComponent(userId)}`;
+    }
+
+    // ✅ 폼 리스너 연결 뒤 초기값 로드
+    loadInitial();
+
+
+    // 입력값 검사기
+    const emailEl = document.getElementById("email");
+    const phoneEl = document.getElementById("phone");
+
+    function isValidEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+    function isValidPhone(v){ return /^010-\d{4}-\d{4}$/.test(v); }
+
+    // 전화번호 자동 하이픈
+    phoneEl.addEventListener("input", () => {
+      let d = phoneEl.value.replace(/\D/g, "");
+      if (d.startsWith("010")) d = d.slice(0, 11);
+      // 010-1234-5678 형식
+      if (d.length >= 3 && d.length <= 7) {
+        phoneEl.value = d.slice(0,3) + "-" + d.slice(3);
+      } else if (d.length > 7) {
+        phoneEl.value = d.slice(0,3) + "-" + d.slice(3,7) + "-" + d.slice(7);
+      } else {
+        phoneEl.value = d;
+      }
+    });
+
+    // blur 시 유효성 표시
+    function toggleValidity(el, valid) {
+      el.classList.toggle("is-invalid", !valid);
+    }
+
+    emailEl.addEventListener("blur", () => {
+      toggleValidity(emailEl, isValidEmail(emailEl.value.trim()));
+    });
+
+    phoneEl.addEventListener("blur", () => {
+      toggleValidity(phoneEl, isValidPhone(phoneEl.value.trim()));
+    });
+
+    // form submit 시 마지막 체크 (네가 이미 submit 핸들러가 있다면 그 안에서 써도 OK)
+    document.getElementById("editForm").addEventListener("submit", (e) => {
+      const ev = emailEl.value.trim();
+      const pv = phoneEl.value.trim();
+
+      const emailOk = isValidEmail(ev);
+      const phoneOk = isValidPhone(pv);
+
+      toggleValidity(emailEl, emailOk);
+      toggleValidity(phoneEl, phoneOk);
+
+      if (!emailOk || !phoneOk) {
+        e.preventDefault();
+        alert(!emailOk ? "이메일 형식이 올바르지 않습니다." : "전화번호 형식이 올바르지 않습니다. 예) 010-1234-5678");
+        (!emailOk ? emailEl : phoneEl).focus();
+        return false;
+      }
+    });
+  </script>
+</body>
+</html>
