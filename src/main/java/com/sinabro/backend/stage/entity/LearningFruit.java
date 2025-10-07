@@ -1,46 +1,51 @@
 package com.sinabro.backend.stage.entity;
 
+import com.sinabro.backend.stage.entity.Stage;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-import io.swagger.v3.oas.annotations.media.Schema;
 
 @Entity
-@Table(name = "learning_fruit")
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor @Builder
-@Schema(description = "열매(세트) 엔티티 - Stage 안에 묶이는 최소 학습 단위")
+@Table(
+        name = "learning_fruit",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uq_stage_seq", columnNames = {"stage_id", "sequence_in_stage"})
+        }
+)
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class LearningFruit {
 
     @Id
     @Column(name = "fruit_id", length = 20, nullable = false)
-    @Schema(description = "열매 ID", example = "FR_LS_001")
     private String fruitId;
 
-    @Column(
-            name = "category",
-            nullable = false,
-            columnDefinition = "ENUM('writing_study','listening_study','writing_game','listening_game')"
-    )
-    @Schema(description = "열매 카테고리", example = "listening_study")
-    private String category;
+    // ENUM: writing_study, listening_study, writing_game, listening_game
+    @Enumerated(EnumType.STRING)
+    @Column(name = "category", nullable = false)
+    private Category category;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "stage_id", referencedColumnName = "stage_id", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    @Schema(description = "소속 Stage ID")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "stage_id", nullable = false,
+            foreignKey = @ForeignKey(name = "fk_fruit_stage"))
     private Stage stage;
 
     @Column(name = "sequence_in_stage", nullable = false)
-    @Schema(description = "해당 나무 내 열매 순서", example = "1")
     private Integer sequenceInStage;
 
     @Column(name = "title", length = 100)
-    @Schema(description = "UI 표시용 제목", example = "기본 색상 A")
     private String title;
 
-    @Column(name = "is_active", nullable = false, columnDefinition = "BOOLEAN DEFAULT TRUE")
-    @Schema(description = "활성 여부", example = "true")
-    private Boolean isActive;
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = false;
+
+    // ENUM 정의
+    public enum Category {
+        writing_study,
+        listening_study,
+        writing_game,
+        listening_game
+    }
 }

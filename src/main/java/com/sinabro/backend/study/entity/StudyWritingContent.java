@@ -3,45 +3,64 @@ package com.sinabro.backend.study.entity;
 import com.sinabro.backend.stage.entity.LearningFruit;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-import io.swagger.v3.oas.annotations.media.Schema;
 
 @Entity
-@Table(name = "study_writing_content")
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor @Builder
-@Schema(description = "쓰기 학습 콘텐츠 엔티티")
+@Table(
+        name = "study_writing_content",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uq_ws_fruit_order", columnNames = {"fruit_id", "content_order"})
+        }
+)
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class StudyWritingContent {
 
     @Id
     @Column(name = "ws_content_id", length = 255, nullable = false)
-    @Schema(description = "쓰기 학습 콘텐츠 ID", example = "W1_LINE_1")
     private String wsContentId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "fruit_id", referencedColumnName = "fruit_id", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    @Schema(description = "소속 열매 ID")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "fruit_id", nullable = false,
+            foreignKey = @ForeignKey(name = "fk_ws_content_fruit"))
     private LearningFruit fruit;
 
-    @Column(
-            name = "ws_subject_tag",
-            nullable = false,
-            columnDefinition = "ENUM('직선','곡선1','곡선2','도형','자음','이중자음','받침','이중모음','동물','과일','야채','우리몸')"
-    )
-    @Schema(description = "학습 태그", example = "직선")
-    private String wsSubjectTag;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ws_subject_tag", nullable = false)
+    private WsSubjectTag wsSubjectTag;
 
     @Column(name = "ws_content_text", length = 255)
-    @Schema(description = "따라쓰기 텍스트", example = "ㄱ")
     private String wsContentText;
 
     @Column(name = "content_order", nullable = false)
-    @Schema(description = "열매 내 순서", example = "1")
     private Integer contentOrder;
 
-    @Column(name = "meta_json", columnDefinition = "TEXT")
-    @Schema(description = "메타 정보(JSON)", example = "{\"asset\":\"writing/line1.png\"}")
+    @Lob
+    @Column(name = "meta_json")
     private String metaJson;
+
+    @Column(name = "ws_audio_url", length = 255)
+    private String wsAudioUrl;
+
+    @Column(name = "ws_content_order", nullable = false)
+    private Integer wsContentOrder;
+
+    @Column(name = "ws_content_type", length = 10, nullable = false)
+    private String wsContentType = "쓰기 학습 콘텐츠";
+
+    @Column(name = "ws_image_url", length = 255)
+    private String wsImageUrl;
+
+    @Column(name = "ws_stroke_image_url", length = 255)
+    private String wsStrokeImageUrl;
+
+    @Column(name = "ws_stage_id", length = 10, nullable = false)
+    private String wsStageId;
+
+    // ENUM 정의
+    public enum WsSubjectTag {
+        직선, 곡선1, 곡선2, 도형, 자음, 모음, 동물, 과일, 야채, 우리몸
+    }
 }
