@@ -68,6 +68,11 @@ public class SecurityConfig {
                                 "/api/parent-choice/**"
                         ).permitAll()
 
+                        // === Report ===
+                        .requestMatchers(
+                                "/api/report/**"
+                        ).permitAll()
+
                         // === Swagger / Health ===
                         .requestMatchers(
                                 "/v3/api-docs/**",
