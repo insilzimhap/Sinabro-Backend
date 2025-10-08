@@ -72,7 +72,7 @@ public class SecurityConfig {
                         // === 학습/게임/리포트 ===
                         .requestMatchers(
                                 "/api/study/**",
-                                "/api/game/**",
+                                "/api/games/**",
                                 "/api/progress/**",
                                 "/api/parent/report/**",
                                 "/api/report/**"
