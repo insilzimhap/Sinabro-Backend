@@ -250,4 +250,16 @@ public class ParentMypageService {
                 .build();
     }
 
+    /** 부모 언어 조회 */
+    public String getUserLanguage(String userId) {
+        log.info("[ParentLanguage] load userId={}", userId);
+
+        User u = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "사용자를 찾을 수 없습니다."));
+
+        log.info("[ParentLanguage] success userId={} lang={}", userId, u.getUserLanguage());
+        return u.getUserLanguage();
+    }
+
+
 }

@@ -89,4 +89,12 @@ public class ParentMypageController {
         var saved = parentMypageService.updateSettings(userId, req);
         return ResponseEntity.ok(saved);
     }
+
+    /** 부모 언어 조회 (번역용) */
+    @GetMapping("/{userId}/language")
+    public ResponseEntity<String> getUserLanguage(@PathVariable String userId) {
+        String lang = parentMypageService.getUserLanguage(userId);
+        return ResponseEntity.ok(lang);
+    }
+
 }
