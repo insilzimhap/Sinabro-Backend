@@ -1,21 +1,29 @@
 package com.sinabro.backend.report.controller;
 
-import com.sinabro.backend.report.dto.ReportRequest;
+// 다른 패키지의 클래스들을 import 해줘야 해
+import com.sinabro.backend.report.dto.ReportRequestDto;
+import com.sinabro.backend.report.dto.ReportResponseDto;
 import com.sinabro.backend.report.service.ParentReportPreviewService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/report")   // ✅ prefix: /api/report
-@RequiredArgsConstructor
+@RequestMapping("/api/report")
 public class ParentReportPreviewController {
 
-    private final ParentReportPreviewService previewService;
+    private final ParentReportPreviewService reportService;
 
-    // 부모가 자녀 리포트를 확인하는 API
+    public ParentReportPreviewController(ParentReportPreviewService reportService) {
+        this.reportService = reportService;
+    }
+
     @PostMapping("/preview")
-    public String preview(@RequestBody ReportRequest request) {
-        // ✅ request.getChildId(), request.getDate() 정상 동작
-        return previewService.generatePreview(request.getChildId(), request.getDate());
+    public ResponseEntity<ReportResponseDto> createReportPreview(@RequestBody ReportRequestDto requestDto) {
+        ReportResponseDto response = reportService.createReportPreview(requestDto);
+        return ResponseEntity.ok(response);
     }
 }

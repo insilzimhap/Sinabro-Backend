@@ -1,4 +1,4 @@
-package com.sinabro.backend.study.controller;//package com.sinabro.backend.study.controller;
+//package com.sinabro.backend.study.controller;
 //
 //import com.sinabro.backend.stage.entity.Stage;
 //import com.sinabro.backend.stage.repository.StageRepository;
