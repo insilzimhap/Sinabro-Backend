@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>문의사항 관리 - 시나브로</title>
+  <link rel="stylesheet" href="/web/css/header.css" />
+  <link rel="stylesheet" href="/web/css/board/board_qna.css" />
+  <!-- 공통 fetch 유틸 -->
+  <script src="/web/js/common.js"></script>
+</head>
+<body>
+   <div id="header-container"></div>
+
+  <main>
+     <div class="sub-nav">
+  <a href="board_notice.html">공지사항 게시판</a>
+  <a href="board_qna.html" class="active">문의사항 게시판</a>
+</div>
+
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="검색어를 입력하세요" />
+      <!-- 검색 필드 -->
+      <select id="field">
+        <option value="">전체</option>
+        <option value="title">제목</option>
+        <option value="writerId">아이디</option>
+        <option value="writerName">이름</option>
+      </select>
+
+      <!-- 상태 -->
+      <select id="status">
+        <option value="">전체</option>
+        <option value="답변 전">답변 전</option>
+        <option value="답변 완료">답변 완료</option>
+      </select>
+
+      <input type="date" id="startDate">
+      <span>~</span>
+      <input type="date" id="endDate">
+
+      <button onclick="loadList()">검색</button>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>No</th>
+          <th>제목</th>
+          <th>작성일</th>
+          <th>작성자</th>
+          <th>아이디</th>
+          <th>상태</th>
+          <th>액션</th>
+        </tr>
+      </thead>
+      <tbody id="questionTable"></tbody>
+    </table>
+  </main>
+
+  <script>
+    // 공통 헤더
+    fetch("/web/header.html").then(r=>r.text()).then(h=>{
+      document.getElementById("header-container").innerHTML = h;
+      if (typeof checkLogin === "function") checkLogin();
+    });
+
+    // 목록 불러오기
+    async function loadList() {
+      const q         = document.getElementById('searchInput').value.trim();
+      const field     = document.getElementById('field').value;
+      const status    = document.getElementById('status').value;
+      const startDate = document.getElementById('startDate').value;
+      const endDate   = document.getElementById('endDate').value;
+
+      const params = new URLSearchParams();
+      if (q)         params.set('q', q);
+      if (field)     params.set('field', field);        // "", title, writerId, writerName
+      if (status)    params.set('status', status);      // "", 답변 전, 답변 완료
+      if (startDate) params.set('startDate', startDate);
+      if (endDate)   params.set('endDate', endDate);
+
+      const res = await apiFetch(`/api/admin/inquiries?${params.toString()}`);
+      if (!res || !res.ok) {
+        alert('목록을 불러오지 못했습니다.');
+        return;
+      }
+      const list = await res.json(); // AdminInquiryListItemDto[]
+
+      const tbody = document.getElementById('questionTable');
+      tbody.innerHTML = '';
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#777;">검색 결과가 없습니다.</td></tr>`;
+        return;
+      }
+
+      list.forEach((item, idx) => {
+        const tr = document.createElement('tr');
+        const created = item.createdAt ? item.createdAt.split('T')[0] : '';
+        const statusClass = item.status === '답변 완료' ? 'status-done' : 'status-waiting';
+        tr.innerHTML = `
+          <td>${idx + 1}</td>
+          <td>${escapeHtml(item.title)}</td>
+          <td>${created}</td>
+          <td>${escapeHtml(item.writerName || '-')}</td>
+          <td>${escapeHtml(item.writerId || '-')}</td>
+          <td><span class="status-box ${statusClass}">${item.status}</span></td>
+          <td><button class="manage-btn" onclick="goDetail(${item.id})">관리</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+
+    function goDetail(id){
+      location.href = `board_qna_answer.html?id=${encodeURIComponent(id)}`;
+    }
+
+    // 간단 XSS 방지
+    function escapeHtml(s){
+      return String(s ?? '')
+              .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+              .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+    }
+
+    // 최초 로딩
+    loadList();
+  </script>
+   <script>
+     // 공통 유틸 로딩
+     fetch("/web/js/common.js");
+   </script>
+</body>
+</html>
