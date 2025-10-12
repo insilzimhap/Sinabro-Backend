@@ -1,6 +1,6 @@
-package com.sinabro.backend.game.repository;
+package com.sinabro.backend.game.listening.repository;
 
-import com.sinabro.backend.game.entity.ListeningGameOption;
+import com.sinabro.backend.game.listening.entity.ListeningGameOption;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
