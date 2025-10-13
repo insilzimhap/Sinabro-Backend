@@ -1,0 +1,371 @@
+package com.sinabro.backend.game.listening.service;
+
+import com.sinabro.backend.game.listening.dto.*;
+import com.sinabro.backend.game.listening.entity.*;
+import com.sinabro.backend.record.entity.ListeningGameResult;
+import com.sinabro.backend.game.listening.repository.*;
+import com.sinabro.backend.record.repository.ListeningGameResultRepository;
+import com.sinabro.backend.stage.entity.LearningFruit;
+import com.sinabro.backend.stage.repository.LearningFruitRepository;
+import com.sinabro.backend.user.entity.Child;
+import com.sinabro.backend.user.repository.ChildRepository;
+import com.sinabro.backend.weakness.service.ChildWeaknessService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
+
+
+/**
+ * ListeningGameService
+ * - 듣기 게임 관련 주요 비즈니스 로직을 담당
+ *   (start / choice / complete / tree + 기존 report용 processListeningGameResult 유지)
+ */
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class ListeningGameService {
+
+    private final ListeningGameResultRepository listeningGameResultRepository;
+    private final ListeningGameQuestionRepository questionRepository;
+    private final ListeningGameOptionRepository optionRepository;
+    private final ListeningGameChoicesRepository choicesRepository;
+    private final LearningFruitRepository learningFruitRepository;
+    private final ChildRepository childRepository;
+    private final ChildWeaknessService childWeaknessService;
+
+    //================== 듣기 게임용 비즈니스 메서드 ==================
+
+    /**
+     * 게임 시작 검증
+     * - 입력 DTO: ListeningGameStartRequestDto
+     * - 동작:
+     *   1) LearningFruit 유효성 검증 (카테고리, 활성 상태)
+     *   2) Child 존재 검증
+     *   3) ListeningGameResult 스텁 INSERT (기본값 저장)
+     *   4) resultId 및 총 문항 수 반환
+     *
+     * 실패 시 ResponseStatusException으로 적절한 HTTP 상태 반환
+     */
+    @Transactional
+    public ListeningGameStartResponseDto start(ListeningGameStartRequestDto req) {
+        String childId = req.getChildId();
+        String fruitId = req.getFruitId();
+        log.info("[ListeningGame][start] 시작 요청 childId={} fruitId={}", childId, fruitId);
+
+        // 1️⃣ 열매 유효성 검증 (존재 확인 + 카테고리 확인 + 활성 상태 확인)
+        LearningFruit fruit = learningFruitRepository.findById(fruitId)
+                .orElseThrow(() -> {
+                    log.warn("[ListeningGame][start] 열매 미존재 fruitId={}", fruitId);
+                    return new ResponseStatusException(HttpStatus.NOT_FOUND, "해당 열매를 찾을 수 없습니다.");
+                });
+
+        // Category 체크 (Category enum 타입에 따라 값 비교)
+        if (fruit.getCategory() == null || !fruit.getCategory().name().equalsIgnoreCase("LISTENING_GAME") &&
+                !fruit.getCategory().name().equalsIgnoreCase("listening_game")) {
+            log.warn("[ListeningGame][start] 열매가 듣기 게임 카테고리가 아님 fruitId={} category={}", fruitId, fruit.getCategory());
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "해당 열매는 듣기 게임용이 아닙니다.");
+        }
+
+        // 활성화 여부 체크
+        if (!fruit.isActive()) {
+            log.warn("[ListeningGame][start] 열매 비활성 상태로 입장 불가 fruitId={}", fruitId);
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "해당 열매는 현재 활성화되어 있지 않습니다.");
+        }
+
+        // 2️⃣ 자녀 존재 확인
+        childRepository.findById(childId).orElseThrow(() -> {
+            log.warn("[ListeningGame][start] 자녀 미존재 childId={}", childId);
+            return new ResponseStatusException(HttpStatus.NOT_FOUND, "자녀를 찾을 수 없습니다.");
+        });
+
+        log.info("[ListeningGame][start] 시작 검증 통과 childId={} fruitId={}", childId, fruitId);
+
+        // 3️⃣ ListeningGameResult 스텁 INSERT
+        String resultId = "lg-res-" + UUID.randomUUID().toString().replace("-", "").substring(0, 16);
+        int totalQuestions = (int) questionRepository.countByFruitId(fruitId);
+
+        ListeningGameResult stub = ListeningGameResult.builder()
+                .lgResultId(resultId)
+                .resultType("듣기 게임")
+                .lgChildId(childId)
+                .fruitId(fruitId)
+                .lgScore(0)
+                .totalQuestions(totalQuestions)
+                .isSuccess(false)
+                .timeSpentSecs(null)
+                .build();
+
+        listeningGameResultRepository.save(stub);
+        log.info("[ListeningGame][start] 스텁 결과 생성 완료 resultId={} totalQuestions={}", resultId, totalQuestions);
+
+        // 4️⃣ resultId 및 총 문항 수 반환
+        return ListeningGameStartResponseDto.builder()
+                .resultId(resultId)
+                .totalQuestions(totalQuestions)
+                .build();
+
+    }
+
+
+    /**
+     * 선택 기록 저장
+     * - 입력 DTO: ListeningGameChoiceRequestDto
+     * - 동작:
+     *   1) option 존재 확인 (정답 여부 읽기)
+     *   2) question 존재 확인
+     *   3) ListeningGameChoices 엔티티 생성 및 저장 (is_correct는 Option 스냅샷)
+     *   4) UNIQUE(lg_result_id, lg_question_id) 위반 시 409 반환
+     */
+    @Transactional
+    public void choice(ListeningGameChoiceRequestDto req) {
+        String resultId = req.getResultId();
+        String questionId = req.getQuestionId();
+        String optionId = req.getOptionId();
+
+        log.info("[ListeningGame][choice] 선택 요청 resultId={} questionId={} optionId={}", resultId, questionId, optionId);
+
+        // option 확인
+        ListeningGameOption option = optionRepository.findById(optionId)
+                .orElseThrow(() -> {
+                    log.warn("[ListeningGame][choice] 선택지 없음 optionId={}", optionId);
+                    return new ResponseStatusException(HttpStatus.NOT_FOUND, "선택지를 찾을 수 없습니다.");
+                });
+
+        // result 존재 확인
+        if (!listeningGameResultRepository.existsById(resultId)) {
+            log.warn("[ListeningGame][choice] resultId={} 존재하지 않음", resultId);
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "게임 세션(resultId)을 찾을 수 없습니다.");
+        }
+
+        // question 확인
+        questionRepository.findById(questionId).orElseThrow(() -> {
+            log.warn("[ListeningGame][choice] 문제 없음 questionId={}", questionId);
+            return new ResponseStatusException(HttpStatus.NOT_FOUND, "문제를 찾을 수 없습니다.");
+        });
+
+        // Choices 엔티티 생성
+        String choiceId = "lch-" + UUID.randomUUID().toString().replace("-", "").substring(0, 16);
+        ListeningGameChoices choice = ListeningGameChoices.builder()
+                .lgChoiceId(choiceId)
+                .lgResultId(resultId)
+                .lgQuestionId(questionId)
+                .lgOptionId(optionId)
+                .isCorrect(option.isCorrect())
+                .answeredAt(LocalDateTime.now())
+                .build();
+
+        try {
+            choicesRepository.save(choice);
+            log.info("[ListeningGame][choice] 선택 기록 저장 성공 choiceId={} resultId={}", choiceId, resultId);
+        } catch (DataIntegrityViolationException ex) {
+            // UNIQUE 제약 위반 또는 FK 무결성 오류 처리
+            log.warn("[ListeningGame][choice] 무결성 오류(중복 가능) resultId={} questionId={}", resultId, questionId);
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 해당 문제에 대한 선택이 존재합니다.");
+        }
+    }
+
+    /**
+     * 게임 완료 처리
+     * - 입력 DTO: ListeningGameCompleteRequestDto
+     * - 동작:
+     *   1) child, fruit 존재 검증
+     *   2) choices 집계 -> 정답 개수, 전체 문항 수 계산
+     *   3) ListeningGameResult 기존 행 UPDATE
+     *   4) 성공이면 다음 열매 활성화, 취약점 분석 호출
+     */
+    @Transactional
+    public ListeningGameResult complete(ListeningGameCompleteRequestDto req) {
+        String childId = req.getChildId();
+        String fruitId = req.getFruitId();
+        String resultId = req.getResultId();
+        Integer timeSpentSecs = req.getTimeSpentSecs();
+
+        log.info("[ListeningGame][complete] 완료 요청 childId={} fruitId={} resultId={}", childId, fruitId, resultId);
+
+        // 1️⃣ 자녀 존재 확인
+        Child child = childRepository.findById(childId)
+                .orElseThrow(() -> {
+                    log.warn("[ListeningGame][complete] 자녀 미존재 childId={}", childId);
+                    return new ResponseStatusException(HttpStatus.NOT_FOUND, "자녀를 찾을 수 없습니다.");
+                });
+
+        // 2️⃣ 열매 존재 확인
+        LearningFruit fruit = learningFruitRepository.findById(fruitId)
+                .orElseThrow(() -> {
+                    log.warn("[ListeningGame][complete] 열매 미존재 fruitId={}", fruitId);
+                    return new ResponseStatusException(HttpStatus.NOT_FOUND, "열매를 찾을 수 없습니다.");
+                });
+
+        // 3️⃣ 기존 Result 존재 여부 확인
+        ListeningGameResult result = listeningGameResultRepository.findById(resultId)
+                .orElseThrow(() -> {
+                    log.warn("[ListeningGame][complete] 결과(resultId) 미존재 resultId={}", resultId);
+                    return new ResponseStatusException(HttpStatus.NOT_FOUND, "결과(resultId)를 찾을 수 없습니다.");
+                });
+
+        // 4️⃣ 선택 기록 조회
+        List<ListeningGameChoices> choices = choicesRepository.findByLgResultId(resultId);
+        if (choices.isEmpty()) {
+            log.warn("[ListeningGame][complete] 선택 기록 없음 resultId={}", resultId);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "선택 기록이 존재하지 않습니다.");
+        }
+
+        // 5️⃣ 결과 계산
+        int totalQuestions = choices.size();
+        int correctCount = (int) choices.stream().filter(ListeningGameChoices::isCorrect).count();
+        boolean isSuccess = determineSuccess(correctCount, totalQuestions);
+
+
+        // 6️⃣ 기존 Result UPDATE
+        result.setLgScore(correctCount);
+        result.setTotalQuestions(totalQuestions);
+        result.setSuccess(isSuccess);
+        result.setTimeSpentSecs(timeSpentSecs);
+
+        listeningGameResultRepository.saveAndFlush(result);
+        log.info("[ListeningGame][complete] 결과 갱신 완료 resultId={} score={} total={} success={}",
+                resultId, correctCount, totalQuestions, isSuccess);
+
+        // 7️⃣ 성공 시 후속 처리
+        if (isSuccess) {
+            try {
+                activateNextFruitIfExists(fruit);
+            } catch (Exception e) {
+                log.warn("[ListeningGame][complete] 다음 열매 활성화 실패: {}", e.getMessage());
+            }
+        }
+
+        // 8️⃣ 취약점 분석 (성공 여부와 무관) -> 정화랑 나중에 이야기
+        // childWeaknessService.analyzeAndUpsertWeakness(child, fruitId);
+
+        return result;
+    }
+
+
+
+    /**
+     * 나무 조회 (프론트용)
+     * - stageId, childId를 받아 해당 단계의 열매 리스트와 상태(last result)를 반환
+     * - 반환 DTO: ListeningGameTreeResponseDto
+     */
+    @Transactional(readOnly = true)
+    public List<ListeningGameTreeResponseDto> tree(String stageId, String childId) {
+        log.info("[ListeningGame][tree] 조회 요청 stageId={} childId={}", stageId, childId);
+
+        // LearningFruit의 카테고리 enum 값은 프로젝트의 Category enum에 따름 (예: LISTENING_GAME)
+        List<LearningFruit> fruits = learningFruitRepository
+                .findByCategoryAndStageIdOrderBySequenceInStage(com.sinabro.backend.progress.entity.Category.listening_game, stageId);
+
+        Map<String, Optional<ListeningGameResult>> latestByFruit = new HashMap<>();
+        if (childId != null && !childId.isBlank()) {
+            for (LearningFruit f : fruits) {
+                Optional<ListeningGameResult> latest = listeningGameResultRepository
+                        .findTop1ByLgChildIdAndFruitIdOrderByLgPlayDateDesc(childId, f.getFruitId());
+                latestByFruit.put(f.getFruitId(), latest);
+            }
+        }
+
+        List<ListeningGameTreeResponseDto> resp = fruits.stream().map(f -> {
+            Optional<ListeningGameResult> latest = latestByFruit.getOrDefault(f.getFruitId(), Optional.empty());
+            Boolean lastSuccess = latest.map(ListeningGameResult::isSuccess).orElse(null);
+            Integer lastScore = latest.map(ListeningGameResult::getLgScore).orElse(null);
+            return ListeningGameTreeResponseDto.builder()
+                    .fruitId(f.getFruitId())
+                    .title(f.getTitle())
+                    .isActive(f.isActive())
+                    .lastSuccess(lastSuccess)
+                    .lastScore(lastScore)
+                    .build();
+        }).collect(Collectors.toList());
+
+        log.info("[ListeningGame][tree] 조회 완료 stageId={} count={}", stageId, resp.size());
+        return resp;
+    }
+
+
+
+    // report 용
+    @Transactional
+    public void processListeningGameResult(ListeningGameResultDto dto) {
+        // 1. 게임 결과(Result) 엔티티 생성 및 DB 저장
+        ListeningGameResult result = ListeningGameResult.builder()
+                .lgResultId("lg-res-" + UUID.randomUUID()) // 결과 ID 랜덤 생성
+                .lgChildId(dto.getChildId())
+                .fruitId(dto.getFruitId())
+                .lgScore(dto.getScore())
+                .totalQuestions(dto.getTotalQuestions())
+                .isSuccess(dto.isSuccess())
+                .timeSpentSecs(dto.getTimeSpentSecs())
+                .build();
+        listeningGameResultRepository.save(result);
+
+        // 2. 자녀 엔티티 조회
+        Child child = childRepository.findById(dto.getChildId())
+                .orElseThrow(() -> new RuntimeException("Child not found"));
+
+        // 3. 취약점 분석 서비스 호출
+        childWeaknessService.analyzeAndUpsertWeakness(child, dto.getFruitId());
+
+        // 4. 게임 성공 시, 보상(스티커) 지급 서비스 호출
+        if (dto.isSuccess()) {
+            //rewardService.grantStickerForFruitCompletion(dto.getChildId(), dto.getFruitId());
+        }
+    }
+
+    //================== 내부 유틸 메서드 ==================
+    /**
+     * 성공 판정 (3개 이상 정답 시 통과)
+     */
+    private boolean determineSuccess(int correctCount, int totalQuestions) {
+        return correctCount >= 3;
+    }
+
+
+    /**
+     * 다음 열매 활성화 처리
+     * - 현재 열매의 sequence_in_stage + 1 항목을 찾아 is_active=true 로 설정
+     * - 주의: LearningFruit 엔티티에 setIsActive(boolean)가 없으면 컴파일 에러 발생
+     *   -> 권장: LearningFruit에 setter 추가하거나 LearningFruitRepository에
+     *      @Modifying 쿼리로 activateByFruitId(fruitId) 메서드를 만들어 사용
+     */
+    private void activateNextFruitIfExists(LearningFruit currentFruit) {
+        try {
+            String stageId = currentFruit.getStageId();
+            int nextSeq = currentFruit.getSequenceInStage() + 1;
+            Optional<LearningFruit> nextOpt = learningFruitRepository.findByStageIdAndSequenceInStage(stageId, nextSeq);
+            if (nextOpt.isPresent()) {
+                LearningFruit next = nextOpt.get();
+                if (!next.isActive()) {
+                    // LearningFruit에 setter가 있을 경우(권장)
+                    try {
+                        // 시도 1: setter가 있으면 호출
+                        next.getClass().getMethod("setIsActive", boolean.class).invoke(next, true);
+                        learningFruitRepository.save(next);
+                        log.info("[ListeningGame][activate] 다음 열매 활성화 완료 nextFruitId={}", next.getFruitId());
+                    } catch (NoSuchMethodException nsme) {
+                        // setter 없음 -> repository에 @Modifying update 메서드 사용 권장
+                        log.info("[ListeningGame][activate] setter 없음. Repository의 activateByFruitId 사용 시도 nextFruitId={}", next.getFruitId());
+                        learningFruitRepository.activateByFruitId(next.getFruitId()); // repository에 구현 필요
+                        log.info("[ListeningGame][activate] 다음 열매 활성화(레포 방식) 완료 nextFruitId={}", next.getFruitId());
+                    }
+                } else {
+                    log.info("[ListeningGame][activate] 다음 열매 이미 활성화됨 nextFruitId={}", next.getFruitId());
+                }
+            } else {
+                log.info("[ListeningGame][activate] 다음 열매 없음 stageId={} nextSeq={}", stageId, nextSeq);
+            }
+        } catch (Exception e) {
+            log.warn("[ListeningGame][activate] 예외 발생: {}", e.getMessage());
+        }
+    }
+}
