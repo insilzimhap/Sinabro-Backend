@@ -3,6 +3,7 @@ package com.sinabro.backend.weakness.service;
 // --- 필요한 모든 클래스 Import ---
 
 // Lombok
+import com.sinabro.backend.record.repository.ListeningGameResultRepository;
 import lombok.RequiredArgsConstructor;
 
 // Spring Framework
@@ -21,8 +22,6 @@ import java.util.List;
 import com.sinabro.backend.stage.entity.LearningFruit;
 import com.sinabro.backend.stage.repository.LearningFruitRepository;
 import com.sinabro.backend.progress.entity.Category;
-import com.sinabro.backend.record.entity.ListeningGameResult;
-import com.sinabro.backend.record.repository.ListeningGameResultRepository;
 import com.sinabro.backend.report.client.OpenAiClient;
 import com.sinabro.backend.study.entity.StudyListeningContent;
 import com.sinabro.backend.study.repository.StudyListeningContentRepository;

@@ -17,7 +17,7 @@ import java.sql.Timestamp;
 public class ListeningGameResult {
 
     @Id
-    @Column(name = "lg_result_id", length = 20, nullable = false)
+    @Column(name = "lg_result_id", length = 50, nullable = false)
     private String lgResultId;
 
     @Builder.Default // Builder 사용 시 기본값을 '듣기 게임'으로 설정
