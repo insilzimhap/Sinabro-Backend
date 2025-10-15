@@ -41,14 +41,14 @@ public class ChildFruitStatus {
     // 자녀 (FK → child.child_id)
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("childId")
-    @JoinColumn(name = "child_id", nullable = false)
+    @JoinColumn(name = "child_id", nullable = false, columnDefinition = "varchar(255)")
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Child child;
 
     // 열매 (FK → learning_fruit.fruit_id)
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("fruitId")
-    @JoinColumn(name = "fruit_id", nullable = false)
+    @JoinColumn(name = "fruit_id", nullable = false, columnDefinition = "varchar(20)")
     @OnDelete(action = OnDeleteAction.CASCADE)
     private LearningFruit learningFruit;
 }

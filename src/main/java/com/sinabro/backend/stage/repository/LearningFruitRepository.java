@@ -25,7 +25,11 @@ public interface LearningFruitRepository extends JpaRepository<LearningFruit, St
     List<LearningFruit> findByCategoryAndStageIdOrderBySequenceInStage(Category category, String stageId);
 
     /**
-     * [공통] 현재 단계(stage) 내에서 특정 순번(sequence_in_stage)의 열매 조회
+     * [공통]
+     * 🔍 Stage + 순서로 단일 열매 찾기
+     * @param stageId Stage ID
+     * @param sequenceInStage 나무 내 순서
+     * @return 열매 Optional
      */
     Optional<LearningFruit> findByStageIdAndSequenceInStage(String stageId, int sequenceInStage);
 
@@ -36,4 +40,17 @@ public interface LearningFruitRepository extends JpaRepository<LearningFruit, St
     @Modifying(clearAutomatically = true)
     @Query("UPDATE LearningFruit f SET f.isActive = true WHERE f.fruitId = :fruitId")
     void activateByFruitId(@Param("fruitId") String fruitId);
+
+
+    /**
+     * 🌳 특정 Stage의 모든 열매 조회 (순서 포함)
+     * @param stageId Stage ID
+     * @return 해당 스테이지의 열매 리스트
+     */
+    List<LearningFruit> findByStageIdOrderBySequenceInStage(String stageId);
+
+    /**
+     * 🔍 카테고리 & Stage 조합으로 조회 (듣기/쓰기 등 구분용)
+     */
+    List<LearningFruit> findByCategoryAndStageIdOrderBySequenceInStage(Enum<?> category, String stageId);
 }

@@ -5,7 +5,10 @@ import com.sinabro.backend.game.listening.entity.*;
 import com.sinabro.backend.record.entity.ListeningGameResult;
 import com.sinabro.backend.game.listening.repository.*;
 import com.sinabro.backend.record.repository.ListeningGameResultRepository;
+import com.sinabro.backend.stage.entity.ChildFruitStatus;
+import com.sinabro.backend.stage.entity.ChildFruitStatusId;
 import com.sinabro.backend.stage.entity.LearningFruit;
+import com.sinabro.backend.stage.repository.ChildFruitStatusRepository;
 import com.sinabro.backend.stage.repository.LearningFruitRepository;
 import com.sinabro.backend.user.entity.Child;
 import com.sinabro.backend.user.repository.ChildRepository;
@@ -42,6 +45,8 @@ public class ListeningGameService {
     private final LearningFruitRepository learningFruitRepository;
     private final ChildRepository childRepository;
     private final ChildWeaknessService childWeaknessService;
+    private final ChildFruitStatusRepository childFruitStatusRepository;
+
 
     //================== 듣기 게임용 비즈니스 메서드 ==================
 
@@ -62,24 +67,14 @@ public class ListeningGameService {
         String fruitId = req.getFruitId();
         log.info("[ListeningGame][start] 시작 요청 childId={} fruitId={}", childId, fruitId);
 
-        // 1️⃣ 열매 유효성 검증 (존재 확인 + 카테고리 확인 + 활성 상태 확인)
+
+        // 1️⃣ 열매 존재 및 카테고리 검증
         LearningFruit fruit = learningFruitRepository.findById(fruitId)
-                .orElseThrow(() -> {
-                    log.warn("[ListeningGame][start] 열매 미존재 fruitId={}", fruitId);
-                    return new ResponseStatusException(HttpStatus.NOT_FOUND, "해당 열매를 찾을 수 없습니다.");
-                });
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "해당 열매를 찾을 수 없습니다."));
 
-        // Category 체크 (Category enum 타입에 따라 값 비교)
-        if (fruit.getCategory() == null || !fruit.getCategory().name().equalsIgnoreCase("LISTENING_GAME") &&
-                !fruit.getCategory().name().equalsIgnoreCase("listening_game")) {
+        if (!fruit.getCategory().name().equalsIgnoreCase("listening_game")) {
             log.warn("[ListeningGame][start] 열매가 듣기 게임 카테고리가 아님 fruitId={} category={}", fruitId, fruit.getCategory());
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "해당 열매는 듣기 게임용이 아닙니다.");
-        }
-
-        // 활성화 여부 체크
-        if (!fruit.isActive()) {
-            log.warn("[ListeningGame][start] 열매 비활성 상태로 입장 불가 fruitId={}", fruitId);
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "해당 열매는 현재 활성화되어 있지 않습니다.");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "듣기 게임 전용 열매가 아닙니다.");
         }
 
         // 2️⃣ 자녀 존재 확인
@@ -88,7 +83,19 @@ public class ListeningGameService {
             return new ResponseStatusException(HttpStatus.NOT_FOUND, "자녀를 찾을 수 없습니다.");
         });
 
+        // 3️⃣ 자녀별 활성 여부 확인
+        ChildFruitStatus cfs = childFruitStatusRepository.findByChildIdAndFruitId(childId, fruitId)
+                .orElseThrow(() -> {
+                    log.warn("[ListeningGame][start] 잠금 상태(행 없음) childId={} fruitId={}", childId, fruitId);
+                    return new ResponseStatusException(HttpStatus.FORBIDDEN, "해당 열매는 잠겨 있습니다.");
+                });
+        if (!cfs.isActive()) { //changed
+            log.warn("[ListeningGame][start] 잠금 상태(비활성) childId={} fruitId={}", childId, fruitId);
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "아직 열리지 않은 열매입니다.");
+        }
+
         log.info("[ListeningGame][start] 시작 검증 통과 childId={} fruitId={}", childId, fruitId);
+
 
         // 3️⃣ ListeningGameResult 스텁 INSERT
         String resultId = "lg-res-" + UUID.randomUUID().toString().replace("-", "").substring(0, 16);
@@ -236,12 +243,13 @@ public class ListeningGameService {
         log.info("[ListeningGame][complete] 결과 갱신 완료 resultId={} score={} total={} success={}",
                 resultId, correctCount, totalQuestions, isSuccess);
 
-        // 7️⃣ 성공 시 후속 처리
+        // 7️⃣ 성공 시 후속 처리: 자녀별 다음 열매 활성화 (Child_Fruit_Status 조작) //changed
         if (isSuccess) {
             try {
-                activateNextFruitIfExists(fruit);
+                activateNextFruitForChild(childId, fruit); //changed
             } catch (Exception e) {
-                log.warn("[ListeningGame][complete] 다음 열매 활성화 실패: {}", e.getMessage());
+                log.warn("[ListeningGame][complete] 다음 열매 활성화 실패(child별) childId={} fruitId={} err={}",
+                        childId, fruitId, e.getMessage()); //changed
             }
         }
 
@@ -275,14 +283,24 @@ public class ListeningGameService {
             }
         }
 
+        // 🔁 isActive는 이제 Child_Fruit_Status 기준으로 계산 (공용 is_active 사용 제거) //changed
         List<ListeningGameTreeResponseDto> resp = fruits.stream().map(f -> {
             Optional<ListeningGameResult> latest = latestByFruit.getOrDefault(f.getFruitId(), Optional.empty());
             Boolean lastSuccess = latest.map(ListeningGameResult::isSuccess).orElse(null);
-            Integer lastScore = latest.map(ListeningGameResult::getLgScore).orElse(null);
+            Integer lastScore   = latest.map(ListeningGameResult::getLgScore).orElse(null);
+
+            boolean isActiveForChild = false; //changed
+            if (childId != null && !childId.isBlank()) { //changed
+                isActiveForChild = childFruitStatusRepository
+                        .findByChildIdAndFruitId(childId, f.getFruitId())
+                        .map(ChildFruitStatus::isActive)
+                        .orElse(false);
+            } //changed
+
             return ListeningGameTreeResponseDto.builder()
                     .fruitId(f.getFruitId())
                     .title(f.getTitle())
-                    .isActive(f.isActive())
+                    .isActive(isActiveForChild) //changed
                     .lastSuccess(lastSuccess)
                     .lastScore(lastScore)
                     .build();
@@ -332,40 +350,74 @@ public class ListeningGameService {
 
 
     /**
-     * 다음 열매 활성화 처리
-     * - 현재 열매의 sequence_in_stage + 1 항목을 찾아 is_active=true 로 설정
-     * - 주의: LearningFruit 엔티티에 setIsActive(boolean)가 없으면 컴파일 에러 발생
-     *   -> 권장: LearningFruit에 setter 추가하거나 LearningFruitRepository에
-     *      @Modifying 쿼리로 activateByFruitId(fruitId) 메서드를 만들어 사용
+     * 다음 열매 활성화 처리(자녀별)
+     * - Child_Fruit_Status 기준으로 다음 열매를 활성화
+     * - 현재 열매의 sequence_in_stage + 1 항목을 찾아
+     *   * 없으면 Child_Fruit_Status INSERT(is_active=TRUE, opened_at=NOW)
+     *   * 있으면 is_active=TRUE 업데이트
+     * - 마지막 열매인 경우: 다음 Stage의 첫 번째 열매 활성화 시도
      */
-    private void activateNextFruitIfExists(LearningFruit currentFruit) {
+    private void activateNextFruitForChild(String childId, LearningFruit currentFruit) { //changed
         try {
             String stageId = currentFruit.getStageId();
             int nextSeq = currentFruit.getSequenceInStage() + 1;
+
             Optional<LearningFruit> nextOpt = learningFruitRepository.findByStageIdAndSequenceInStage(stageId, nextSeq);
             if (nextOpt.isPresent()) {
                 LearningFruit next = nextOpt.get();
-                if (!next.isActive()) {
-                    // LearningFruit에 setter가 있을 경우(권장)
-                    try {
-                        // 시도 1: setter가 있으면 호출
-                        next.getClass().getMethod("setIsActive", boolean.class).invoke(next, true);
-                        learningFruitRepository.save(next);
-                        log.info("[ListeningGame][activate] 다음 열매 활성화 완료 nextFruitId={}", next.getFruitId());
-                    } catch (NoSuchMethodException nsme) {
-                        // setter 없음 -> repository에 @Modifying update 메서드 사용 권장
-                        log.info("[ListeningGame][activate] setter 없음. Repository의 activateByFruitId 사용 시도 nextFruitId={}", next.getFruitId());
-                        learningFruitRepository.activateByFruitId(next.getFruitId()); // repository에 구현 필요
-                        log.info("[ListeningGame][activate] 다음 열매 활성화(레포 방식) 완료 nextFruitId={}", next.getFruitId());
+                upsertChildFruitActive(childId, next.getFruitId()); // 👈 여기서 INSERT 또는 UPDATE 수행
+                log.info("[ListeningGame][activate] 다음 열매 활성화 완료(child별) childId={} nextFruitId={}", childId, next.getFruitId()); //changed
+            } else {
+                // 다음 열매가 없으면 다음 Stage의 첫 열매(SEQ=1) 활성화 시도 //changed
+                String nextStageId = tryIncrementStageId(stageId); //changed
+                if (nextStageId != null) { //changed
+                    Optional<LearningFruit> nextStageFirst = learningFruitRepository.findByStageIdAndSequenceInStage(nextStageId, 1);
+                    if (nextStageFirst.isPresent()) {
+                        upsertChildFruitActive(childId, nextStageFirst.get().getFruitId()); //changed
+                        log.info("[ListeningGame][activate] 다음 Stage 첫 열매 활성화(child별) childId={} nextStageId={} fruitId={}",
+                                childId, nextStageId, nextStageFirst.get().getFruitId()); //changed
+                    } else {
+                        log.info("[ListeningGame][activate] 다음 Stage 첫 열매 없음 nextStageId={}", nextStageId); //changed
                     }
                 } else {
-                    log.info("[ListeningGame][activate] 다음 열매 이미 활성화됨 nextFruitId={}", next.getFruitId());
+                    log.info("[ListeningGame][activate] 다음 Stage 계산 불가 stageId={}", stageId); //changed
                 }
-            } else {
-                log.info("[ListeningGame][activate] 다음 열매 없음 stageId={} nextSeq={}", stageId, nextSeq);
             }
         } catch (Exception e) {
-            log.warn("[ListeningGame][activate] 예외 발생: {}", e.getMessage());
+            log.warn("[ListeningGame][activate] 예외 발생(child별): {}", e.getMessage()); //changed
+        }
+    }
+
+    // Child_Fruit_Status upsert helper (INSERT or UPDATE TRUE) //changed
+    private void upsertChildFruitActive(String childId, String fruitId) { //changed
+        Optional<ChildFruitStatus> cur = childFruitStatusRepository.findByChildIdAndFruitId(childId, fruitId);
+        if (cur.isPresent()) {
+            if (!cur.get().isActive()) {
+                childFruitStatusRepository.activateFruit(childId, fruitId); // UPDATE is_active=TRUE
+            }
+        } else {
+            ChildFruitStatus entity = ChildFruitStatus.builder()
+                    .id(new ChildFruitStatusId(childId, fruitId))
+                    .isActive(true)
+                    .openedAt(LocalDateTime.now())
+                    .build();
+            childFruitStatusRepository.save(entity);   // INSERT (새 행 생성)
+        }
+    }
+
+    // Stage ID 증가 시도: "ST01", "ST020" 등 숫자 부분 +1 (실패 시 null) //changed
+    private String tryIncrementStageId(String stageId) { //changed
+        if (stageId == null) return null;
+        try {
+            String prefix = stageId.replaceAll("[0-9]", "");
+            String digits = stageId.replaceAll("\\D", "");
+            if (digits.isEmpty()) return null;
+            int width = digits.length();
+            int num = Integer.parseInt(digits);
+            String nextDigits = String.format("%0" + width + "d", num + 1);
+            return prefix + nextDigits;
+        } catch (Exception e) {
+            return null;
         }
     }
 }
