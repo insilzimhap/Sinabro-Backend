@@ -30,7 +30,7 @@ public class WritingGameController {
     public ResponseEntity<WritingGameStartResponseDto> startWritingGame(
             @RequestBody WritingGameStartRequestDto req
     ) {
-        log.info("[WritingGameController] startWritingGame 호출 childId={} fruitId={}",
+        log.info("[WritingGameController][startWritingGame] 호출 childId={} fruitId={}",
                 req.getChildId(), req.getFruitId());
         var dto = writingGameService.start(req);
         return ResponseEntity.ok(dto);
@@ -41,7 +41,7 @@ public class WritingGameController {
     public ResponseEntity<Void> saveChoice(
             @RequestBody WritingGameChoiceRequestDto req
     ) {
-        log.info("[WritingGameController] saveChoice 호출 resultId={} questionId={}",
+        log.info("[WritingGameController][saveChoice] 호출 resultId={} questionId={}",
                 req.getResultId(), req.getQuestionId());
         writingGameService.choice(req);
         return ResponseEntity.noContent().build(); // 204
@@ -52,7 +52,7 @@ public class WritingGameController {
     public ResponseEntity<WritingGameCompleteResponseDto> completeGame(
             @RequestBody WritingGameCompleteRequestDto req
     ) {
-        log.info("[WritingGameController] completeGame 호출 childId={} fruitId={} resultId={}",
+        log.info("[WritingGameController][completeGame] 호출 childId={} fruitId={} resultId={}",
                 req.getChildId(), req.getFruitId(), req.getResultId());
 
         // 서비스는 WritingGameResult 엔티티 반환 (DB 업데이트 포함)
@@ -63,6 +63,7 @@ public class WritingGameController {
                 .resultId(result.getWgResultId())
                 .score(result.getWgScore())
                 .success(result.isSuccess())
+                .totalQuestions(result.getTotalQuestions())
                 .timeSpentSecs(result.getTimeSpentSecs())
                 .build();
 
@@ -75,7 +76,7 @@ public class WritingGameController {
             @RequestParam String stageId,
             @RequestParam(required = false) String childId
     ) {
-        log.info("[WritingGameController] getWritingGameTree 호출 stageId={} childId={}", stageId, childId);
+        log.info("[WritingGameController][getWritingGameTree] 호출 stageId={} childId={}", stageId, childId);
         var list = writingGameService.tree(stageId, childId);
         return ResponseEntity.ok(list);
     }

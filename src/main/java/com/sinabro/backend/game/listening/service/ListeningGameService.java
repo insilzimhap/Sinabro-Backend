@@ -119,6 +119,7 @@ public class ListeningGameService {
         return ListeningGameStartResponseDto.builder()
                 .resultId(resultId)
                 .totalQuestions(totalQuestions)
+                .isActive(cfs.isActive())
                 .build();
 
     }
@@ -362,6 +363,12 @@ public class ListeningGameService {
             String stageId = currentFruit.getStageId();
             int nextSeq = currentFruit.getSequenceInStage() + 1;
 
+            // ✅ 듣기 게임(ST007~ST009)에서는 ST009 이후는 멈춤
+            if ("ST009".equals(stageId)) {
+                log.info("[ListeningGame][activate] ST009(듣기게임 마지막) 이후 단계 없음 — 다음 Stage 활성화 중단");
+                return;
+            }
+
             Optional<LearningFruit> nextOpt = learningFruitRepository.findByStageIdAndSequenceInStage(stageId, nextSeq);
             if (nextOpt.isPresent()) {
                 LearningFruit next = nextOpt.get();
@@ -405,19 +412,29 @@ public class ListeningGameService {
         }
     }
 
-    // Stage ID 증가 시도: "ST01", "ST020" 등 숫자 부분 +1 (실패 시 null) //changed
-    private String tryIncrementStageId(String stageId) { //changed
+    /**
+     * Stage ID 증가 시도
+     * - 예: "ST001" → "ST002" 숫자 부분 +1 (실패 시 null)
+     * - 숫자 자릿수(3자리) 유지
+     */
+    private String tryIncrementStageId(String stageId) {
         if (stageId == null) return null;
         try {
+            // "ST001" → prefix="ST", digits="001"
             String prefix = stageId.replaceAll("[0-9]", "");
             String digits = stageId.replaceAll("\\D", "");
             if (digits.isEmpty()) return null;
-            int width = digits.length();
+
+            // 현재 숫자 +1
             int num = Integer.parseInt(digits);
-            String nextDigits = String.format("%0" + width + "d", num + 1);
-            return prefix + nextDigits;
+            // 숫자 길이만큼 0패딩 유지 (예: width=3 → "002")
+            String nextDigits = String.format("%0" + digits.length() + "d", num + 1);
+
+            return prefix + nextDigits; // ST + 002 → "ST002"
         } catch (Exception e) {
+            log.warn("[StageId][tryIncrementStageId] 변환 실패 stageId={} err={}", stageId, e.getMessage());
             return null;
         }
     }
+
 }

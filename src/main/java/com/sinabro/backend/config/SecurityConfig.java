@@ -78,6 +78,13 @@ public class SecurityConfig {
                                 "/api/report/**"
                         ).permitAll()
 
+                        // === Stage 진행도 (ChildStageStatusController) ===
+                        //  자녀 학습 진행도 조회 API (JWT 없이 접근 가능)
+                        .requestMatchers(
+                                "/api/app/child/*/stage/all",
+                                "/api/app/child/*/stage/ui/current"
+                        ).permitAll()
+
                         // === Swagger / Health ===
                         .requestMatchers(
                                 "/v3/api-docs/**",

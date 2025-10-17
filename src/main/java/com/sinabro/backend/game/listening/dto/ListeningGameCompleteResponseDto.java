@@ -20,4 +20,5 @@ public class ListeningGameCompleteResponseDto {
     private int score;          // 정답 개수
     private boolean success;    // 통과 여부
     private Integer timeSpentSecs; // (옵션) 소요 시간
+    private int totalQuestions;    // 전체 문항 수 (Listening_Game_Result.total_questions)
 }

@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -17,6 +18,12 @@ import java.util.Optional;
  */
 @Repository
 public interface ChildFruitStatusRepository extends JpaRepository<ChildFruitStatus, ChildFruitStatusId> {
+
+    // ✅ 이 메서드를 새로 추가해줘!
+    // findBy + (복합키 필드명) + _ + (복합키 클래스 안의 필드명)
+    // -> findById_ChildId
+    // 이렇게 하면 "id 필드 안에 있는 childId로 찾아줘" 라는 정확한 명령이 돼.
+    List<ChildFruitStatus> findById_ChildId(String childId);
 
     /**
      * 🔍 자녀-열매 조합으로 현재 활성 상태 조회

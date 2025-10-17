@@ -53,4 +53,6 @@ public interface LearningFruitRepository extends JpaRepository<LearningFruit, St
      * 🔍 카테고리 & Stage 조합으로 조회 (듣기/쓰기 등 구분용)
      */
     List<LearningFruit> findByCategoryAndStageIdOrderBySequenceInStage(Enum<?> category, String stageId);
+
+
 }

@@ -27,11 +27,11 @@ public class WritingGameChoices {
 
     // 선택 기록 ID (PK)
     @Id
-    @Column(name = "wg_choice_id", length = 20, nullable = false)
+    @Column(name = "wg_choice_id", length = 50, nullable = false)
     private String wgChoiceId;
 
     // 세션 결과 ID (FK → writing_game_result.wg_result_id)
-    @Column(name = "wg_result_id", length = 20, nullable = false)
+    @Column(name = "wg_result_id", length = 50, nullable = false)
     private String wgResultId;
 
     // 문제 ID (FK → writing_game_question.wg_question_id)
@@ -43,8 +43,8 @@ public class WritingGameChoices {
     private String childWrittenText;
 
     // 정답 여부 (스냅샷)
-    @Column(name = "is_correct", nullable = false)
-    private boolean isCorrect;
+    @Column(name = "is_correct", nullable = false, columnDefinition = "TINYINT(1)")
+    private Boolean isCorrect;
 
     // 응답 시각
     @Column(name = "answered_at")

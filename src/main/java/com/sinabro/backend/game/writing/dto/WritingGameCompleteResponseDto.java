@@ -18,4 +18,5 @@ public class WritingGameCompleteResponseDto {
     private int score;             // 정답 수
     private boolean success;       // 통과 여부
     private Integer timeSpentSecs; // 소요 시간(초)
+    private int totalQuestions;    // 전체 문항 수
 }

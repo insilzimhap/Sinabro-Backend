@@ -27,7 +27,7 @@ public class WritingGameResult {
 
     // 결과 ID (PK)
     @Id
-    @Column(name = "wg_result_id", length = 20, nullable = false)
+    @Column(name = "wg_result_id", length = 50, nullable = false)
     private String wgResultId;
 
     // 결과 타입 (고정: "쓰기 게임")
