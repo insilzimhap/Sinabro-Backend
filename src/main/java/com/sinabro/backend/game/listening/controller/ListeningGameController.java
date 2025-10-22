@@ -3,7 +3,6 @@ package com.sinabro.backend.game.listening.controller;
 import com.sinabro.backend.game.listening.dto.*;
 import com.sinabro.backend.record.entity.ListeningGameResult;
 import com.sinabro.backend.game.listening.service.ListeningGameService;
-import com.sinabro.backend.record.entity.ListeningGameResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +17,6 @@ import org.springframework.web.bind.annotation.*;
  * - GET    /api/app/games/listening/tree         : 듣기 나무(열매 진행도) 조회
  * - POST   /api/app/games/listening/report       : [리포트용] 결과 수집 및 분석 (AI 리포트용)
  *
- * ※ 인증 연동 시 childId는 JWT 주체 기반으로 자동 추출 가능
  */
 @RestController
 @RequestMapping("/api/app/games/listening")
@@ -34,7 +32,7 @@ public class ListeningGameController {
     public ResponseEntity<ListeningGameStartResponseDto> startListeningGame(
             @RequestBody ListeningGameStartRequestDto req
     ) {
-        log.info("[ListeningGameController] startListeningGame 호출 childId={} fruitId={}", req.getChildId(), req.getFruitId());
+        log.info("[ListeningGameController][startListeningGame] 호출 childId={} fruitId={}", req.getChildId(), req.getFruitId());
         var dto = listeningGameService.start(req);
         return ResponseEntity.ok(dto);
     }
@@ -44,7 +42,7 @@ public class ListeningGameController {
     public ResponseEntity<Void> saveChoice(
             @RequestBody ListeningGameChoiceRequestDto req
     ) {
-        log.info("[ListeningGameController] saveChoice 호출 resultId={} questionId={} optionId={}",
+        log.info("[ListeningGameController][saveChoice] 호출 resultId={} questionId={} optionId={}",
                 req.getResultId(), req.getQuestionId(), req.getOptionId());
         listeningGameService.choice(req);
         return ResponseEntity.noContent().build(); // 204
@@ -55,7 +53,7 @@ public class ListeningGameController {
     public ResponseEntity<ListeningGameCompleteResponseDto> completeGame(
             @RequestBody ListeningGameCompleteRequestDto req
     ) {
-        log.info("[ListeningGameController] completeGame 호출 childId={} fruitId={} resultId={}",
+        log.info("[ListeningGameController][completeGame] 호출 childId={} fruitId={} resultId={}",
                 req.getChildId(), req.getFruitId(), req.getResultId());
 
         // 서비스는 기존대로 ListeningGameResult 리턴 (DB 업데이트 포함)
@@ -66,6 +64,7 @@ public class ListeningGameController {
                 .resultId(result.getLgResultId())
                 .score(result.getLgScore())
                 .success(result.isSuccess())
+                .totalQuestions(result.getTotalQuestions())
                 .timeSpentSecs(result.getTimeSpentSecs())
                 .build();
 
@@ -78,7 +77,7 @@ public class ListeningGameController {
             @RequestParam String stageId,
             @RequestParam(required = false) String childId
     ) {
-        log.info("[ListeningGameController] getListeningGameTree 호출 stageId={} childId={}", stageId, childId);
+        log.info("[ListeningGameController][getListeningGameTree] 호출 stageId={} childId={}", stageId, childId);
         var list = listeningGameService.tree(stageId, childId);
         return ResponseEntity.ok(list);
     }
@@ -88,7 +87,7 @@ public class ListeningGameController {
     public ResponseEntity<String> processListeningGameResult(
             @RequestBody ListeningGameResultDto resultDto
     ) {
-        log.info("[ListeningGameController] processListeningGameResult 호출 childId={} fruitId={}",
+        log.info("[ListeningGameController][processListeningGameResult] 호출 childId={} fruitId={}",
                 resultDto.getChildId(), resultDto.getFruitId());
         listeningGameService.processListeningGameResult(resultDto);
         return ResponseEntity.ok("Listening game result processed successfully.");

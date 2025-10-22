@@ -17,7 +17,7 @@ import java.sql.Timestamp;
 public class WritingGameResult {
 
     @Id
-    @Column(name = "wg_result_id", length = 20, nullable = false)
+    @Column(name = "wg_result_id", length = 50, nullable = false)
     private String wgResultId;
 
     @Builder.Default

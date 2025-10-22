@@ -19,4 +19,5 @@ public class WritingGameStartResponseDto {
     private String fruitId;           // 열매(세트) ID
     private int questionCount;        // 출제 문항 수
     private List<WritingQuestionDto> questions; // 출제된 문제 리스트
+    private boolean isActive;     // 활성 여부
 }
