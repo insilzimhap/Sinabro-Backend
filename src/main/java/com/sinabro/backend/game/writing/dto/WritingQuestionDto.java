@@ -6,7 +6,6 @@ import lombok.*;
  * [쓰기 게임 > 문제 DTO]
  * - 프론트로 전달되는 단일 문제 단위 데이터
  */
-
 @Getter
 @Setter
 @NoArgsConstructor
