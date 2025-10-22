@@ -3,6 +3,10 @@ package com.sinabro.backend.report.service;
 // --- 필요한 모든 클래스 Import ---
 
 // Lombok
+import com.sinabro.backend.record.repository.ListeningGameResultRepository;
+import com.sinabro.backend.record.repository.ListeningRecordRepository;
+import com.sinabro.backend.record.repository.WritingGameResultRepository;
+import com.sinabro.backend.record.repository.WritingRecordRepository;
 import lombok.RequiredArgsConstructor;
 
 // Spring Framework
@@ -16,7 +20,6 @@ import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 // Sinabro Project - Custom Classes
 import com.sinabro.backend.report.client.OpenAiClient;
@@ -28,17 +31,12 @@ import com.sinabro.backend.progress.entity.Category;
 import com.sinabro.backend.progress.entity.ChildProgress;
 import com.sinabro.backend.progress.repository.ChildProgressRepository;
 import com.sinabro.backend.stage.entity.LearningFruit;
-import com.sinabro.backend.stage.entity.Stage;
 import com.sinabro.backend.stage.repository.LearningFruitRepository;
 import com.sinabro.backend.stage.repository.StageRepository;
 import com.sinabro.backend.record.entity.ListeningGameResult;
 import com.sinabro.backend.record.entity.ListeningRecord;
 import com.sinabro.backend.record.entity.WritingGameResult;
 import com.sinabro.backend.record.entity.WritingRecord;
-import com.sinabro.backend.record.repository.ListeningGameResultRepository;
-import com.sinabro.backend.record.repository.ListeningRecordRepository;
-import com.sinabro.backend.record.repository.WritingGameResultRepository;
-import com.sinabro.backend.record.repository.WritingRecordRepository;
 import com.sinabro.backend.reward.repository.ChildStickerRepository;
 
 
