@@ -9,12 +9,32 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface WritingGameResultRepository extends JpaRepository<WritingGameResult, String> {
 
+    // WritingGameResultRepository.java
+    @Query("SELECT wgr FROM WritingGameResult wgr " +
+            "WHERE wgr.wgChildId = :childId AND wgr.fruitId = :fruitId " +
+            "ORDER BY wgr.wgPlayDate DESC")
+    List<WritingGameResult> findLatestByChildIdAndFruitId(
+            @Param("childId") String childId,
+            @Param("fruitId") String fruitId,
+            Pageable pageable);
+
+    // 편의 메서드: 최신 1건
+    default Optional<WritingGameResult> findTop1ByWgChildIdAndFruitIdOrderByWgPlayDateDesc(
+            String childId, String fruitId) {
+        List<WritingGameResult> list =
+                findLatestByChildIdAndFruitId(childId, fruitId, Pageable.ofSize(1));
+        return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
+    }
+
+
     // AI 리포트 생성 시, 특정 날짜의 쓰기 게임 결과를 조회하기 위한 메서드
     List<WritingGameResult> findByWgChildIdAndWgPlayDateBetween(String childId, LocalDateTime start, LocalDateTime end);
+
 
     /**
      * [취약점 분석용 커스텀 쿼리]

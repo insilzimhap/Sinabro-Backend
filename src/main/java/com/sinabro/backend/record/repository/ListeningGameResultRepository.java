@@ -9,12 +9,52 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
+
+/**
+ * 🎧 ListeningGameResultRepository
+ * - 듣기 게임 결과 Repository
+ * - 한 열매(세트) 단위의 플레이 결과를 저장·조회
+ * - 자녀별, 열매별 최신/성공 기록 및 분석용 조회 제공
+ */
 
 @Repository
 // ListeningGameResult 엔티티의 PK인 lg_result_id가 String 타입이므로 String을 사용했어.
 public interface ListeningGameResultRepository extends JpaRepository<ListeningGameResult, String> {
 
-    // AI 리포트 생성 시, 특정 날짜의 듣기 게임 결과를 조회하기 위한 메서드
+    // === 🍎 게임 결과 조회용 ===
+
+    /**
+     * [자녀별 결과 조회]
+     * - 특정 자녀(childId)의 모든 결과를 최신순으로 조회
+     * - 예: 마이페이지나 리포트 이력용
+     */
+    List<ListeningGameResult> findByLgChildIdOrderByLgPlayDateDesc(String childId);
+
+    /**
+     * [자녀 + 열매별 최신 결과 조회]
+     * - 자녀(childId)가 특정 열매(fruitId)에 대해 마지막으로 플레이한 결과 1건 조회
+     * - ListeningGameTreeResponseDto.lastSuccess, lastScore 계산에 사용
+     */
+    Optional<ListeningGameResult> findTop1ByLgChildIdAndFruitIdOrderByLgPlayDateDesc(
+            String childId,
+            String fruitId
+    );
+
+    /**
+     * [열매별 전체 결과 조회]
+     * - 특정 열매(fruitId)에 대한 모든 플레이 결과를 최신순으로 조회
+     * - 관리자 리포트나 통계용
+     */
+    List<ListeningGameResult> findByFruitIdOrderByLgPlayDateDesc(String fruitId);
+
+    // === 🧠 AI 리포트 / 분석용 ===
+
+    /**
+     * [AI 리포트 조회]
+     * - 특정 자녀가 특정 날짜 범위 내에 플레이한 결과를 모두 조회
+     * - GPT 학습 리포트 생성 시 사용
+     */
     List<ListeningGameResult> findByLgChildIdAndLgPlayDateBetween(String childId, LocalDateTime start, LocalDateTime end);
 
     /**

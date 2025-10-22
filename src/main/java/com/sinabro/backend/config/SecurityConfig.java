@@ -72,10 +72,22 @@ public class SecurityConfig {
                         // === 학습/게임/리포트 ===
                         .requestMatchers(
                                 "/api/study/**",
-                                "/api/games/**",
+                                "/api/app/games/**",  //자녀용 듣기게임, 쓰기게임 등 포함
                                 "/api/progress/**",
                                 "/api/parent/report/**",
                                 "/api/report/**"
+                        ).permitAll()
+
+                        // === 보상 ===
+                        .requestMatchers(
+                                "/api/app/reward/**"
+                        ).permitAll()
+
+                        // === Stage 진행도 (ChildStageStatusController) ===
+                        //  자녀 학습 진행도 조회 API (JWT 없이 접근 가능)
+                        .requestMatchers(
+                                "/api/app/child/*/stage/all",
+                                "/api/app/child/*/stage/ui/current"
                         ).permitAll()
 
                         // === Swagger / Health ===
