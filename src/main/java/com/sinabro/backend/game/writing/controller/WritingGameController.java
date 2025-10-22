@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.*;
  * - POST   /api/app/games/writing/complete     : 게임 완료 처리 (결과 계산 및 갱신)
  * - GET    /api/app/games/writing/tree         : 쓰기 나무(열매 진행도) 조회
  *
- * ※ 인증 연동 시 childId는 JWT 주체 기반으로 자동 추출 가능
  */
 @RestController
 @RequestMapping("/api/app/games/writing")
@@ -25,7 +24,7 @@ public class WritingGameController {
 
     private final WritingGameService writingGameService;
 
-    /** 🎬 쓰기 게임 시작 (스텁 생성 + 랜덤 문제 출제) */
+    /** 🎬 쓰기 게임 시작 (스텁 생성 + 랜덤 문제 출제 -> 안함! 빈 리스트로 보냄) */
     @PostMapping("/start")
     public ResponseEntity<WritingGameStartResponseDto> startWritingGame(
             @RequestBody WritingGameStartRequestDto req

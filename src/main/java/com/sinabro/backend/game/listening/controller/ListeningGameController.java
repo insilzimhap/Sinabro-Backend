@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.*;
  * - GET    /api/app/games/listening/tree         : 듣기 나무(열매 진행도) 조회
  * - POST   /api/app/games/listening/report       : [리포트용] 결과 수집 및 분석 (AI 리포트용)
  *
- * ※ 인증 연동 시 childId는 JWT 주체 기반으로 자동 추출 가능
  */
 @RestController
 @RequestMapping("/api/app/games/listening")
