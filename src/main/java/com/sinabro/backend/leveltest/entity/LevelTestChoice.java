@@ -7,9 +7,11 @@ import java.time.LocalDateTime;
 @Entity
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "level_test_choices")
+@Builder
 public class LevelTestChoice {
 
     @Id
