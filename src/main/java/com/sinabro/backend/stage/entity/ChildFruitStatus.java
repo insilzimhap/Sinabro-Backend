@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "child_fruit_status")
 @Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
