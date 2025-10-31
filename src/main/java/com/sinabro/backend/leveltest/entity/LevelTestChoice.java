@@ -11,7 +11,6 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "level_test_choices")
-@Builder
 public class LevelTestChoice {
 
     @Id
