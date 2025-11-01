@@ -108,7 +108,7 @@ public class DataLoader implements CommandLineRunner {
         LevelTestQuestion l1q1 = new LevelTestQuestion();
         l1q1.setLevel(1);
         l1q1.setType("듣고 고르기");
-        l1q1.setPrompt("아래 그림 중에서 “사과”를 골라보세요.");
+        l1q1.setPrompt("음성을 듣고 알맞은 그림을 골라보세요.");
         l1q1.setAudioUrl("/audio/apple.mp3");
         l1q1.addOption(new LevelTestOption("사과", "/img/apple.png", true));
         l1q1.addOption(new LevelTestOption("바나나", "/img/banana.png", false));
@@ -149,7 +149,7 @@ public class DataLoader implements CommandLineRunner {
         l2q2.setLevel(2);
         l2q2.setType("이름 고르기");
         l2q2.setPrompt("아래 보기에서 본인 이름을 골라보세요");
-        l2q2.setAudioUrl("/audio/find-your-name.mp3");
+        l2q2.setQuestionImageUrl("/img/question_name.png");
         l2q2.addOption(new LevelTestOption("정답_이름_자리", null, true));
         l2q2.addOption(new LevelTestOption("김철수", null, false));
         l2q2.addOption(new LevelTestOption("박영희", null, false));
