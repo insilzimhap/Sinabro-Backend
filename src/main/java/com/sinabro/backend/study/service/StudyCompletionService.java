@@ -260,7 +260,7 @@ public class StudyCompletionService {
         // 2. 다음 레벨의 첫 번째 스테이지 찾기
         //    findByCategoryAndLevelOrderByStageIdAsc 사용 (반환 타입: List<Stage>)
         List<Stage> nextLevelStages = stageRepository
-                .findByCategoryAndLevelOrderByStageIdAsc(category.name(), nextLevelStr); // ⚠️ Enum.name()으로 String 변환
+                .findByCategoryAndLevelOrderByStageIdAsc(category, nextLevelStr); // ⚠️ Enum.name()으로 String 변환
 
         if (!nextLevelStages.isEmpty()) {
             Stage nextStage = nextLevelStages.get(0); // 첫 번째 스테이지 선택
