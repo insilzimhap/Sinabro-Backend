@@ -18,4 +18,3 @@ public class SwaggerConfig {
                         .description("다문화 가정 아동을 위한 한국어 학습 플랫폼 시나브로의 백엔드 API 문서입니다."));
     }
 }
-

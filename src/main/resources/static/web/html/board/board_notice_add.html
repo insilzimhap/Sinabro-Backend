@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>공지사항 추가 - 시나브로</title>
+  <link rel="stylesheet" href="/web/css/header.css" />
+  <link rel="stylesheet" href="/web/css/board/board_notice_add.css" />
+  <!-- 공통 fetch 유틸 -->
+  <script src="/web/js/common.js"></script>
+</head>
+<body>
+ <div id="header-container"></div>
+
+  <main>
+    <h2>공지사항 추가</h2>
+    <form id="noticeForm">
+      <div>
+        <label for="title">제목</label>
+        <input type="text" id="title" placeholder="제목을 입력하세요" required />
+      </div>
+      <div>
+        <label for="content">내용</label>
+        <textarea id="content" placeholder="내용을 입력하세요" required></textarea>
+      </div>
+      <div>
+        <label for="author">유형</label>
+        <input type="text" id="type" placeholder="유형을 입력하세요" required />
+      </div>
+      <div class="button-group">
+        <button type="submit" class="save-btn" id="saveBtn">저장하기</button>
+        <button type="button" class="cancel-btn" onclick="location.href='board_notice.html'">취소하기</button>
+      </div>
+    </form>
+  </main>
+
+  <script>
+    // 공통 헤더 삽입
+    fetch("/web/header.html")
+      .then(res => res.text())
+      .then(data => {
+        document.getElementById("header-container").innerHTML = data;
+        checkLogin(); // 헤더 붙인 뒤 호출!
+      });
+
+    // ✅ 백엔드 API Base URL
+    const API_BASE = "http://localhost:8090/api/admin/notices";
+
+    // ✅ 유틸: 앞뒤 공백 제거 후 빈값 체크
+    const val = (id) => document.getElementById(id).value.trim();
+
+    // ✅ 유효성 검사: 전부 필수 (제목/내용/유형)
+    function validateForm() {
+      const title = val("title");
+      const content = val("content");
+      const type = val("type");
+
+      // HTML의 required도 있지만, 사용성 위해 JS로 한 번 더 체크
+      if (!title) {
+        alert("제목을 입력해주세요.");
+        document.getElementById("title").focus();
+        return false;
+      }
+      if (!content) {
+        alert("내용을 입력해주세요.");
+        document.getElementById("content").focus();
+        return false;
+      }
+      if (!type) {
+        alert("유형을 입력해주세요.");
+        document.getElementById("type").focus();
+        return false;
+      }
+      return true;
+    }
+
+    // ✅ 중복 제출 방지
+    let submitting = false;
+
+    // ✅ 폼 제출(공지 등록)
+    document.getElementById('noticeForm').addEventListener('submit', async function(e) {
+      e.preventDefault(); // 기본 제출 막기
+
+      // 1) 클라이언트 유효성 검사
+      if (!validateForm()) return;
+
+      if (submitting) return; // 중복 클릭 방지
+      submitting = true;
+      const saveBtn = document.getElementById("saveBtn");
+      const oldText = saveBtn.textContent;
+      saveBtn.textContent = "저장 중...";
+      saveBtn.disabled = true;
+
+      // 2) 요청 페이로드 구성
+      const payload = {
+        title: val("title"),
+        content: val("content"),
+        noticeType: val("type") // 유형 필수
+      };
+
+      try {
+        // 3) API 호출
+        const res = await fetch(API_BASE, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        // 4) 응답 처리
+        if (!res.ok) {
+          // 서버가 에러 메시지 JSON을 줄 수도 있으므로 시도
+          let msg = "등록에 실패했습니다.";
+          try {
+            const errJson = await res.json();
+            if (errJson && errJson.message) msg = errJson.message;
+          } catch (_) { /* ignore json parse error */ }
+          throw new Error(msg);
+        }
+
+        alert("공지사항이 등록되었습니다.");
+        location.href = "board_notice.html"; // 목록으로 이동
+      } catch (err) {
+        console.error(err);
+        alert(err.message || "등록 중 오류가 발생했습니다.");
+      } finally {
+        // 5) 버튼 상태 원복
+        submitting = false;
+        saveBtn.textContent = oldText;
+        saveBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

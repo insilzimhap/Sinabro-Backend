@@ -1,61 +1,66 @@
 package com.sinabro.backend.study.entity;
 
+import com.sinabro.backend.stage.entity.LearningFruit;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-import com.sinabro.backend.stage.entity.Stage;
 
 @Entity
-@Table(name = "study_writing_content")
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor @Builder
+@Table(
+        name = "study_writing_content",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uq_ws_fruit_order", columnNames = {"fruit_id", "content_order"})
+        }
+)
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class StudyWritingContent {
 
-    // 문제 ID (PK)
     @Id
     @Column(name = "ws_content_id", length = 255, nullable = false)
     private String wsContentId;
 
-    // ENUM(12종) – DB 레벨 제약
-    @Column(
-            name = "ws_subject_tag",
-            nullable = false,
-            columnDefinition =
-                    "ENUM('직선','곡선1','곡선2','도형','자음','이중자음','받침','이중모음','동물','과일','야채','우리 몸')"
-    )
-    private String wsSubjectTag;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "fruit_id", nullable = false,
+            foreignKey = @ForeignKey(name = "fk_ws_content_fruit"))
+    private LearningFruit fruit;
 
-    // 기본값 '쓰기 학습 콘텐츠'
-    @Column(
-            name = "ws_content_type",
-            length = 10,
-            nullable = false,
-            columnDefinition = "VARCHAR(10) DEFAULT '쓰기 학습 콘텐츠'"
-    )
-    private String wsContentType;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ws_subject_tag", nullable = false)
+    private WsSubjectTag wsSubjectTag;
 
-    // 따라쓰기 텍스트 (NOT NULL)
-    @Column(name = "ws_content_text", length = 255, nullable = false)
+    @Column(name = "ws_content_text", length = 255)
     private String wsContentText;
 
-    // 보조 이미지/오디오/스트로크 이미지 (NULL 허용)
-    @Column(name = "ws_image_url", length = 255)
-    private String wsImageUrl;
+    @Column(name = "content_order", nullable = false)
+    private Integer contentOrder;
+
+    @Lob
+    @Column(name = "meta_json")
+    private String metaJson;
 
     @Column(name = "ws_audio_url", length = 255)
     private String wsAudioUrl;
 
+    @Column(name = "ws_content_order", nullable = false)
+    private Integer wsContentOrder;
+
+    @Column(name = "ws_content_type", length = 10, nullable = false)
+    private String wsContentType = "쓰기 학습 콘텐츠";
+
+    @Column(name = "ws_image_url", length = 255)
+    private String wsImageUrl;
+
     @Column(name = "ws_stroke_image_url", length = 255)
     private String wsStrokeImageUrl;
 
-    // FK → Stage(stage_id), category='writing_study' 조건은 서비스에서 검증
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "ws_stage_id", referencedColumnName = "stage_id", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    private Stage stage;
+    @Column(name = "ws_stage_id", length = 10, nullable = false)
+    private String wsStageId;
 
-    // 해당 단계 내 문제 순서
-    @Column(name = "ws_content_order", nullable = false)
-    private Integer wsContentOrder;
+    // ENUM 정의
+    public enum WsSubjectTag {
+        직선, 곡선1, 곡선2, 도형, 자음, 모음, 동물, 과일, 야채, 우리몸
+    }
 }

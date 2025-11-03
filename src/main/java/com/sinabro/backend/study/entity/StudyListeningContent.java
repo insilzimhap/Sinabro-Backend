@@ -1,53 +1,68 @@
 package com.sinabro.backend.study.entity;
 
-import com.sinabro.backend.stage.entity.Stage;
+import com.sinabro.backend.stage.entity.LearningFruit;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
-@Table(name = "study_listening_content")
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor @Builder
+@Table(
+        name = "study_listening_content",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uq_fruit_content", columnNames = {"fruit_id", "content_order"})
+        }
+)
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class StudyListeningContent {
 
-    // 문제 ID (PK)
     @Id
     @Column(name = "ls_content_id", length = 255, nullable = false)
     private String lsContentId;
 
-    // DEFAULT '듣기 학습 콘텐츠'
-    @Column(
-            name = "ls_content_type",
-            length = 10,
-            nullable = false,
-            columnDefinition = "VARCHAR(10) DEFAULT '듣기 학습 콘텐츠'"
-    )
-    private String lsContentType;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "fruit_id", nullable = false,
+            foreignKey = @ForeignKey(name = "fk_ls_content_fruit"))
+    private LearningFruit fruit;
 
-    // ENUM('색상','동물','가족','감정','숫자','일상듣기')
-    @Column(
-            name = "ls_subject_tag",
-            nullable = false,
-            columnDefinition = "ENUM('색상','동물','가족','감정','숫자','일상듣기')"
-    )
-    private String lsSubjectTag;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ls_subject_tag", nullable = false)
+    private SubjectTag lsSubjectTag;
 
-    // 학습 이미지/오디오 URL (NULL 허용)
-    @Column(name = "ls_image_url", length = 255)
-    private String lsImageUrl;
+    @Column(name = "content_order", nullable = false)
+    private Integer contentOrder;
+
+    @Lob
+    @Column(name = "meta_json")
+    private String metaJson;
 
     @Column(name = "ls_audio_url", length = 255)
     private String lsAudioUrl;
 
-    // FK → Stage(stage_id), category='listening_study' 조건은 서비스에서 검증
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "ls_stage_id", referencedColumnName = "stage_id", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE) // Stage 삭제 시 컨텐츠 자동 삭제
-    private Stage stage;
-
-    // 해당 단계 내 문제 순서 (1,2,3,4…)
     @Column(name = "ls_content_order", nullable = false)
     private Integer lsContentOrder;
+
+    @Column(name = "ls_content_type", length = 10, nullable = false)
+    private String lsContentType = "듣기 학습 콘텐츠";
+
+    @Column(name = "ls_image_url", length = 255)
+    private String lsImageUrl;
+
+    @Column(name = "ls_stage_id", length = 10, nullable = false)
+    private String lsStageId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ls_situation_tag", nullable = false)
+    private SituationTag lsSituationTag;
+
+    // ENUM 정의
+    public enum SubjectTag {
+        색상, 동물, 가족, 감정, 숫자, 일상듣기
+    }
+
+    public enum SituationTag {
+        색상, 동물, 가족, 감정, 숫자, 일상듣기
+    }
 }

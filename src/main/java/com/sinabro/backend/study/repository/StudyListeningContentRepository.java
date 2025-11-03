@@ -6,5 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface StudyListeningContentRepository extends JpaRepository<StudyListeningContent, String> {
-    List<StudyListeningContent> findByStage_StageIdOrderByLsContentOrderAsc(String stageId);
+
+    // LearningFruit와 연관관계 매핑을 걸었으니까 이렇게 사용 가능
+    List<StudyListeningContent> findByFruit_FruitIdOrderByContentOrderAsc(String fruitId);
 }
