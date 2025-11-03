@@ -183,7 +183,7 @@ public class SecurityConfig {
     @Order(3) // ✅ 가장 마지막 우선순위, 나머지 체인에 안 걸리면 여기서 처리
     public SecurityFilterChain webFilterChain(HttpSecurity http) throws Exception {
         http
-                .securityMatcher("/web/**", "/css/**", "/js/**", "/images/**")
+                .securityMatcher("/web/**", "/css/**", "/js/**", "/images/**", "/img/**")
                 .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
                 .csrf(csrf -> csrf.disable());
         return http.build();

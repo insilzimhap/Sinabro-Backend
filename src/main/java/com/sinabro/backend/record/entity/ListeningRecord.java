@@ -40,6 +40,9 @@ public class ListeningRecord {
     @Column(name = "fruit_id", length = 20, nullable = false)
     private String fruitId;
 
+    @Column(name = "ls_content_id", length = 255, nullable = false)
+    private String lsContentId;
+
     // --- 연관 관계 ---
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ls_child_id", insertable = false, updatable = false)

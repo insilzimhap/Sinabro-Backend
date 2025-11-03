@@ -10,4 +10,7 @@ public interface StageRepository extends JpaRepository<Stage, String> {
     List<Stage> findByCategoryAndLevelOrderByStageIdAsc(String category, String level);
     // ✅ enum 타입 category용 메서드 추가
     List<Stage> findByCategory(Stage.Category category);
+    // StageRepository.java
+    List<Stage> findByCategoryAndLevelOrderByStageIdAsc(Stage.Category category, String level);
+
 }
