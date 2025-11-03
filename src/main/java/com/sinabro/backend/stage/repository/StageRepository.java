@@ -12,4 +12,5 @@ public interface StageRepository extends JpaRepository<Stage, String> {
     List<Stage> findByCategory(Stage.Category category);
     // StageRepository.java
     List<Stage> findByCategoryAndLevelOrderByStageIdAsc(Stage.Category category, String level);
+
 }

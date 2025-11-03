@@ -353,8 +353,8 @@ public class WritingGameService {
             int nextSeq = currentFruit.getSequenceInStage() + 1;
 
             // ✅ 쓰기 게임(ST010~ST012)에서는 ST012 이후는 멈춤
-            if ("ST012".equals(stageId)) {
-                log.info("[ListeningGame][activate] ST012(쓰기게임 마지막) 이후 단계 없음 — 다음 Stage 활성화 중단");
+            if ("ST013".equals(stageId)) {
+                log.info("[ListeningGame][activate] ST013(쓰기게임 마지막) 이후 단계 없음 — 다음 Stage 활성화 중단");
                 return;
             }
 

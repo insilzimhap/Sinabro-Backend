@@ -84,14 +84,10 @@ public class ListeningGameService {
         });
 
         // 3️⃣ 자녀별 활성 여부 확인
-        ChildFruitStatus cfs = childFruitStatusRepository.findByChildIdAndFruitId(childId, fruitId)
-                .orElseThrow(() -> {
-                    log.warn("[ListeningGame][start] 잠금 상태(행 없음) childId={} fruitId={}", childId, fruitId);
-                    return new ResponseStatusException(HttpStatus.FORBIDDEN, "해당 열매는 잠겨 있습니다.");
-                });
-        if (!cfs.isActive()) { //changed
-            log.warn("[ListeningGame][start] 잠금 상태(비활성) childId={} fruitId={}", childId, fruitId);
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "아직 열리지 않은 열매입니다.");
+        Optional<ChildFruitStatus> statusOpt = childFruitStatusRepository.findByChildIdAndFruitId(childId, fruitId);
+        if (statusOpt.isEmpty() || !statusOpt.get().isActive()) {
+            log.warn("[ListeningGame][start] 잠금 상태(입장 불가) childId={} fruitId={}", childId, fruitId);
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "잠금된 열매입니다. 입장 불가.");
         }
 
         log.info("[ListeningGame][start] 시작 검증 통과 childId={} fruitId={}", childId, fruitId);
@@ -119,7 +115,7 @@ public class ListeningGameService {
         return ListeningGameStartResponseDto.builder()
                 .resultId(resultId)
                 .totalQuestions(totalQuestions)
-                .isActive(cfs.isActive())
+                .isActive(true)
                 .build();
 
     }
