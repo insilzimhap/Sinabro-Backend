@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-//import org.springframework.web.bind.annotation.CrossOrigin; // 1. 이거 import 하세요
 
 /**
  * [자녀별 학습 진행도 조회 API]
@@ -20,7 +19,6 @@ import org.springframework.web.bind.annotation.*;
  * - 듣기/쓰기/게임 공통으로 사용됨
  */
 @RestController
-//@CrossOrigin(origins = {"*"}) // 2. 이 코드를 클래스 레벨에 추가!
 @RequestMapping("/api/app/child")
 @RequiredArgsConstructor
 @Slf4j
