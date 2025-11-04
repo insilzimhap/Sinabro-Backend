@@ -19,6 +19,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.sinabro.backend.weakness.service.ChildWeaknessService;
+import com.sinabro.backend.progress.repository.ChildProgressRepository;
+import com.sinabro.backend.progress.entity.Category;
+import com.sinabro.backend.progress.entity.ChildProgress;
+import com.sinabro.backend.progress.entity.ChildProgressId;
+
 import java.util.*;
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
@@ -40,6 +46,8 @@ public class WritingGameService {
     private final LearningFruitRepository learningFruitRepository;
     private final ChildRepository childRepository;
     private final ChildFruitStatusRepository childFruitStatusRepository;
+    private final ChildWeaknessService childWeaknessService;
+    private final ChildProgressRepository childProgressRepository;
 
     //================== 쓰기 게임용 비즈니스 메서드 ==================
 
@@ -260,6 +268,14 @@ public class WritingGameService {
             }
         }
 
+        // 8️⃣ [추가] 취약점 분석 호출
+        log.info("[WritingGame][complete] 취약점 분석 호출...");
+        childWeaknessService.analyzeAndUpsertWeakness(child, fruit.getFruitId()); // fruitId 대신 fruit 객체 전달
+
+        // 9️⃣ [추가] ChildProgress 업데이트 (Category.writing_game 사용)
+        log.info("[WritingGame][complete] ChildProgress 업데이트 호출...");
+        updateChildProgress(childId, Category.writing_game, fruitId);
+
         return result;
     }
 
@@ -442,4 +458,75 @@ public class WritingGameService {
         };
     }
 
+    // 👇👇👇 [추가] StudyCompletionService에서 복사해 온 헬퍼 메서드 👇👇👇
+    /**
+     * 게임 완료 시 ChildProgress 테이블을 업데이트하는 메서드
+     * @param childId 완료한 자녀 ID
+     * @param category 완료한 카테고리 (Category Enum 타입)
+     * @param completedFruitId 완료한 열매 ID
+     */
+    private void updateChildProgress(String childId, Category category, String completedFruitId) {
+        log.debug("[WritingGameService] ChildProgress 업데이트 시작: childId={}, category={}, completedFruitId={}",
+                childId, category, completedFruitId);
+
+        // 1. 완료된 열매 정보 조회 (비교를 위해 필요)
+        LearningFruit completedFruit = learningFruitRepository.findById(completedFruitId)
+                .orElseThrow(() -> {
+                    log.error("[WritingGameService] ChildProgress 업데이트 실패: 완료된 열매 정보 없음 (fruitId={})", completedFruitId);
+                    return new RuntimeException("Fruit not found: " + completedFruitId);
+                });
+
+        // 2. 기존 ChildProgress 정보 조회 또는 새로 생성
+        ChildProgressId progressId = new ChildProgressId(childId, category); // 복합키 생성
+        ChildProgress progress = childProgressRepository.findById(progressId)
+                .orElseGet(() -> { // 없으면 새로 만들기
+                    log.debug("[WritingGameService] ChildProgress 없음. 새로 생성: childId={}, category={}", childId, category);
+                    Child childRef = childRepository.getReferenceById(childId);
+                    return ChildProgress.builder()
+                            .childId(childId)     // ID 클래스 필드 직접 설정
+                            .category(category) // ID 클래스 필드 직접 설정
+                            .child(childRef)
+                            .build();
+                });
+
+        // 3. last_fruit_id 업데이트
+        progress.setLastFruitId(completedFruitId);
+
+        // 4. best_fruit_id 업데이트 (필요 시)
+        String currentBestFruitId = progress.getBestFruitId();
+        boolean updateBest = false;
+
+        if (currentBestFruitId == null) {
+            updateBest = true;
+            log.debug("[WritingGameService] 기존 BestFruit 없음. 업데이트 필요.");
+        } else {
+            LearningFruit currentBestFruit = learningFruitRepository.findById(currentBestFruitId)
+                    .orElse(null);
+
+            if (currentBestFruit == null) {
+                updateBest = true;
+                log.warn("[WritingGameService] 기존 BestFruit ID({})에 해당하는 열매 정보 없음. 업데이트 필요.", currentBestFruitId);
+            } else {
+                int stageCompare = completedFruit.getStageId().compareTo(currentBestFruit.getStageId());
+                if (stageCompare > 0) {
+                    updateBest = true;
+                } else if (stageCompare == 0 && completedFruit.getSequenceInStage() > currentBestFruit.getSequenceInStage()) {
+                    updateBest = true;
+                }
+                log.debug("[WritingGameService] BestFruit 비교: completed(stage={}, seq={}) vs currentBest(stage={}, seq={}). UpdateNeeded={}",
+                        completedFruit.getStageId(), completedFruit.getSequenceInStage(),
+                        currentBestFruit.getStageId(), currentBestFruit.getSequenceInStage(), updateBest);
+            }
+        }
+
+        if (updateBest) {
+            progress.setBestFruitId(completedFruitId);
+            log.info("[WritingGameService] BestFruit 업데이트: childId={}, category={}, newBestFruitId={}",
+                    childId, category, completedFruitId);
+        }
+
+        // 5. ChildProgress 저장 (INSERT or UPDATE)
+        childProgressRepository.save(progress);
+        log.info("[WritingGameService] ChildProgress 업데이트 완료: childId={}, category={}", childId, category);
+    }
 }

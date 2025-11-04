@@ -95,7 +95,7 @@ public class StudyCompletionService {
         Child child = childRepository.findById(dto.getChildId())
                 .orElseThrow(() -> new RuntimeException("Child not found: " + dto.getChildId()));
 
-        childWeaknessService.analyzeAndUpsertWeakness(child, dto.getFruitId());
+//        childWeaknessService.analyzeAndUpsertWeakness(child, dto.getFruitId());
 
         if (dto.isCompleted()) {
             log.info("[StudyCompletion] 학습 완료됨 (isCompleted=true). 보상 지급 및 다음 열매/스테이지 활성화 로직 실행.");

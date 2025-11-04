@@ -80,25 +80,43 @@ public class ProgressQueryService {
         log.info("[ProgressQueryService] 진행 상황 요약 조회 완료: childId={}", childId);
         return summary;
     }
-
-    // "X나무 Y열매" 문자열 반환 (수정 없음)
+    /**
+     * "레벨 X 의 Y열매" 형식의 문자열을 반환합니다.
+     */
     private String getFruitDescription(ChildProgress progress, Function<ChildProgress, String> fruitIdExtractor) {
         if (progress == null) return null;
         String fruitId = fruitIdExtractor.apply(progress);
         if (fruitId == null) return null;
+
         Optional<LearningFruit> fruitOpt = learningFruitRepository.findById(fruitId);
         if (fruitOpt.isEmpty()) return null;
         LearningFruit fruit = fruitOpt.get();
+
         Optional<Stage> stageOpt = stageRepository.findById(fruit.getStageId());
         if (stageOpt.isEmpty()) return null;
         Stage stage = stageOpt.get();
-        // ⭐️ 형식 변경: "Lv.X Y나무 Z열매" (예: "Lv.초급 1나무 3열매")
-        return String.format("Lv.%s %s %d열매",
-                stage.getLevel(), // 예: "초급"
-                stage.getStageId(), // 예: "ST001" (나무 이름 대신 ID 사용?) -> 아니면 Stage 엔티티에 name 필드 추가 필요
-                fruit.getSequenceInStage()
+
+        // "초급", "중급", "고급" 문자열을 1, 2, 3 숫자로 변환
+        int levelNum = getLevelNumberFromString(stage.getLevel());
+
+        // ⭐️ [수정] "레벨 X 의 Y열매" 형식으로 변경 (예: "레벨 1 의 3열매")
+        return String.format("레벨 %d 의 %d열매",
+                levelNum, // 예: 1
+                fruit.getSequenceInStage() // 예: 3
         );
-        // 만약 "1나무 3열매" 형식을 원하면 stage.getLevel() 대신 다른 값을 써야 함 (예: Stage 순서?)
+    }
+
+    /**
+     * ⭐️ [추가] "초급" -> 1, "중급" -> 2, "고급" -> 3 변환 헬퍼
+     */
+    private int getLevelNumberFromString(String levelStr) {
+        if (levelStr == null) return 0;
+        switch (levelStr) {
+            case "초급": return 1;
+            case "중급": return 2;
+            case "고급": return 3;
+            default: return 0; // 알 수 없는 값은 0
+        }
     }
 
     /**
